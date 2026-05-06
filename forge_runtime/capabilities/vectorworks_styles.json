@@ -1,0 +1,35 @@
+{
+  "schema_version": "openBIMForge Tool Contract 1.0",
+  "scanned_at": "2026-05-03T10:00:00.000000",
+  "environment": {
+    "vectorworks_version": {
+      "major": 29,
+      "minor": 0,
+      "maintenance": 0,
+      "platform": 2,
+      "build": 0
+    }
+  },
+  "wall_styles": [],
+  "slab_styles": [],
+  "roof_styles": [],
+  "roof_slab_styles": [],
+  "door_symbols": [],
+  "window_symbols": [],
+  "tool_policy": {
+    "create_wall": "native",
+    "create_polygon": "native_with_vertex_normalization",
+    "create_slab": "native_then_fallback_extrude",
+    "create_pitched_roof": "native_then_roof_slab_style_fallback",
+    "add_door_to_wall": "disabled_no_symbol_fallback_skip",
+    "add_window_to_wall": "disabled_no_symbol_fallback_skip",
+    "ifc_export": "with_ui_requires_user_confirmation"
+  },
+  "generation_rules": [
+    "Only call tools listed as native or fallback-supported in tool_policy.",
+    "Do not invent Vectorworks style or symbol names.",
+    "Use ordered, non-self-intersecting polygon vertices for slab and roof profiles.",
+    "Prefer simple rectangular slab/roof profiles for production stability.",
+    "Dry-run mode active: Using default manifest."
+  ]
+}

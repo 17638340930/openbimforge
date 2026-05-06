@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<batch name="Open Batch" default="root">
+    
+    <target name="root">
+	
+        <openmodel file="${OPENBIMFORGE_ROOT}\forge_core\design_agent\solibri_data\LLM-checking-FullExample.smc" />
+			
+		<updatemodel file="${OPENBIMFORGE_ROOT}\forge_core\design_agent\Ifc_test_data\sample_model.ifc" with="${OPENBIMFORGE_RUNTIME_ROOT}\artifacts\follow_up.ifc" />
+			
+        
+			
+		
+			
+		<check />
+		
+        <autocomment zoom="TRUE" />
+		
+		
+		<updatepresentation />
+		
+		<bcfreport file="${OPENBIMFORGE_RUNTIME_ROOT}\artifacts\autorun_issues.bcfzip" version="2" />
+
+		
+		<exit /> 
+		
+    </target>
+</batch>

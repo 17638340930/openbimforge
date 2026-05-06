@@ -1,0 +1,1125 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+    --radius: 0.75rem;
+
+    /* Clean Light Modern Palette */
+    --background: oklch(0.985 0.002 240);
+    --foreground: oklch(0.23 0.02 260);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.23 0.02 260);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.23 0.02 260);
+
+    /* Dark primary - slightly lighter */
+    --primary: oklch(0.35 0.01 260);
+    --primary-foreground: oklch(0.99 0 0);
+
+    /* Warm gray secondary */
+    --secondary: oklch(0.96 0.005 260);
+    --secondary-foreground: oklch(0.35 0.02 260);
+
+    /* Light muted tones */
+    --muted: oklch(0.965 0.005 260);
+    --muted-foreground: oklch(0.5 0.02 260);
+
+    /* Soft lavender accent */
+    --accent: oklch(0.94 0.03 280);
+    --accent-foreground: oklch(0.35 0.08 270);
+
+    /* Muted rose destructive */
+    --destructive: oklch(0.45 0.12 10);
+
+    /* Subtle borders */
+    --border: oklch(0.92 0.01 260);
+    --input: oklch(0.94 0.01 260);
+    --ring: oklch(0.25 0.01 260);
+
+    /* Chart colors - harmonious palette */
+    --chart-1: oklch(0.55 0.18 265);
+    --chart-2: oklch(0.65 0.15 170);
+    --chart-3: oklch(0.7 0.18 45);
+    --chart-4: oklch(0.6 0.2 330);
+    --chart-5: oklch(0.5 0.15 200);
+
+    /* Sidebar */
+    --sidebar: oklch(0.99 0.002 260);
+    --sidebar-foreground: oklch(0.23 0.02 260);
+    --sidebar-primary: oklch(0.55 0.18 265);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.96 0.02 270);
+    --sidebar-accent-foreground: oklch(0.35 0.05 265);
+    --sidebar-border: oklch(0.93 0.01 260);
+    --sidebar-ring: oklch(0.55 0.18 265);
+}
+
+.dark {
+    --background: oklch(0.15 0.015 260);
+    --foreground: oklch(0.95 0.01 260);
+
+    --card: oklch(0.2 0.015 260);
+    --card-foreground: oklch(0.95 0.01 260);
+
+    --popover: oklch(0.2 0.015 260);
+    --popover-foreground: oklch(0.95 0.01 260);
+
+    --primary: oklch(0.7 0.16 265);
+    --primary-foreground: oklch(0.15 0.02 260);
+
+    --secondary: oklch(0.25 0.015 260);
+    --secondary-foreground: oklch(0.9 0.01 260);
+
+    --muted: oklch(0.25 0.015 260);
+    --muted-foreground: oklch(0.65 0.02 260);
+
+    --accent: oklch(0.3 0.04 280);
+    --accent-foreground: oklch(0.9 0.03 270);
+
+    --destructive: oklch(0.55 0.12 10);
+
+    --border: oklch(0.28 0.015 260);
+    --input: oklch(0.25 0.015 260);
+    --ring: oklch(0.7 0.16 265);
+
+    --chart-1: oklch(0.7 0.16 265);
+    --chart-2: oklch(0.7 0.13 170);
+    --chart-3: oklch(0.75 0.16 45);
+    --chart-4: oklch(0.7 0.18 330);
+    --chart-5: oklch(0.6 0.13 200);
+
+    --sidebar: oklch(0.18 0.015 260);
+    --sidebar-foreground: oklch(0.95 0.01 260);
+    --sidebar-primary: oklch(0.7 0.16 265);
+    --sidebar-primary-foreground: oklch(0.15 0.02 260);
+    --sidebar-accent: oklch(0.25 0.03 270);
+    --sidebar-accent-foreground: oklch(0.9 0.02 265);
+    --sidebar-border: oklch(0.28 0.015 260);
+    --sidebar-ring: oklch(0.7 0.16 265);
+}
+
+/* ============================================
+   REFINED MINIMAL DESIGN SYSTEM
+   ============================================ */
+
+:root {
+    /* Surface layers for depth */
+    --surface-0: oklch(1 0 0);
+    --surface-1: oklch(0.985 0.002 240);
+    --surface-2: oklch(0.97 0.004 240);
+    --surface-elevated: oklch(1 0 0);
+
+    /* Subtle borders */
+    --border-subtle: oklch(0.94 0.008 260);
+    --border-default: oklch(0.91 0.012 260);
+
+    /* Interactive states */
+    --interactive-hover: oklch(0.96 0.015 260);
+    --interactive-active: oklch(0.93 0.02 265);
+
+    /* Success state */
+    --success: oklch(0.65 0.18 145);
+    --success-muted: oklch(0.95 0.03 145);
+
+    /* Animation timing */
+    --duration-fast: 120ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark {
+    --surface-0: oklch(0.15 0.015 260);
+    --surface-1: oklch(0.18 0.015 260);
+    --surface-2: oklch(0.22 0.015 260);
+    --surface-elevated: oklch(0.25 0.015 260);
+
+    --border-subtle: oklch(0.25 0.012 260);
+    --border-default: oklch(0.3 0.015 260);
+
+    --interactive-hover: oklch(0.25 0.02 265);
+    --interactive-active: oklch(0.3 0.025 270);
+
+    --success: oklch(0.7 0.16 145);
+    --success-muted: oklch(0.25 0.04 145);
+}
+
+/* Expose surface colors to Tailwind */
+@theme inline {
+    --color-surface-0: var(--surface-0);
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-surface-elevated: var(--surface-elevated);
+    --color-border-subtle: var(--border-subtle);
+    --color-border-default: var(--border-default);
+    --color-interactive-hover: var(--interactive-hover);
+    --color-interactive-active: var(--interactive-active);
+    --color-success: var(--success);
+    --color-success-muted: var(--success-muted);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground font-sans;
+    }
+}
+
+/* Fix for Radix ScrollArea viewport horizontal overflow */
+[data-slot="scroll-area-viewport"] > div {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Custom scrollbar */
+@layer utilities {
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: oklch(0.85 0.01 260) transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: oklch(0.85 0.01 260);
+        border-radius: 3px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: oklch(0.75 0.01 260);
+    }
+
+    /* Dark mode scrollbar */
+    .dark .scrollbar-thin {
+        scrollbar-color: oklch(0.35 0.015 260) transparent;
+    }
+
+    .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: oklch(0.35 0.015 260);
+    }
+
+    .dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: oklch(0.45 0.015 260);
+    }
+}
+
+/* Smooth page transitions */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+/* Message bubble animations */
+@keyframes messageIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-message-in {
+    animation: messageIn 0.25s ease-out forwards;
+}
+
+/* Subtle floating shadow for cards */
+.shadow-soft {
+    box-shadow:
+        0 1px 2px oklch(0.23 0.02 260 / 0.04),
+        0 4px 12px oklch(0.23 0.02 260 / 0.06),
+        0 8px 24px oklch(0.23 0.02 260 / 0.04);
+}
+
+.shadow-soft-lg {
+    box-shadow:
+        0 2px 4px oklch(0.23 0.02 260 / 0.04),
+        0 8px 20px oklch(0.23 0.02 260 / 0.08),
+        0 16px 40px oklch(0.23 0.02 260 / 0.06);
+}
+
+/* Gradient text utility */
+.text-gradient-primary {
+    background: linear-gradient(
+        135deg,
+        oklch(0.55 0.18 265),
+        oklch(0.6 0.2 290)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ============================================
+   REFINED DIALOG STYLES
+   ============================================ */
+
+/* Refined dialog shadow - multi-layer soft shadow */
+.shadow-dialog {
+    box-shadow:
+        0 0 0 1px oklch(0 0 0 / 0.03),
+        0 2px 4px oklch(0 0 0 / 0.02),
+        0 12px 24px oklch(0 0 0 / 0.06),
+        0 24px 48px oklch(0 0 0 / 0.04);
+}
+
+.dark .shadow-dialog {
+    box-shadow:
+        0 0 0 1px oklch(1 0 0 / 0.05),
+        0 2px 4px oklch(0 0 0 / 0.2),
+        0 12px 24px oklch(0 0 0 / 0.3),
+        0 24px 48px oklch(0 0 0 / 0.2);
+}
+
+/* Dialog animations */
+@keyframes dialog-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes dialog-out {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.96);
+    }
+}
+
+.animate-dialog-in {
+    animation: dialog-in var(--duration-normal) var(--ease-out) forwards;
+}
+
+.animate-dialog-out {
+    animation: dialog-out 150ms var(--ease-out) forwards;
+}
+
+/* Check pop animation for validation success */
+@keyframes check-pop {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-check-pop {
+    animation: check-pop 0.25s var(--ease-spring) forwards;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .animate-dialog-in,
+    .animate-dialog-out,
+    .animate-check-pop {
+        animation: none;
+    }
+}
+
+/* openBIMForge Vectorworks console - author: JY */
+.forge-page {
+    min-height: 100vh;
+    padding: 32px;
+    background:
+        radial-gradient(circle at 12% 8%, rgba(15, 118, 110, 0.2), transparent 30%),
+        radial-gradient(circle at 90% 5%, rgba(197, 164, 95, 0.22), transparent 26%),
+        linear-gradient(135deg, #f8fbf7 0%, #e7eee9 100%);
+    color: #10201b;
+    font-family: Georgia, "Times New Roman", serif;
+}
+
+.forge-page code,
+.forge-page pre,
+.forge-page .subtitle,
+.forge-page .eyebrow {
+    font-family: "Courier New", monospace;
+}
+
+.forge-page .hero,
+.forge-page .card,
+.forge-page .script-card,
+.forge-page .guide,
+.forge-page .error {
+    border: 1px solid rgba(16, 32, 27, 0.12);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 20px 70px rgba(16, 32, 27, 0.1);
+    backdrop-filter: blur(14px);
+}
+
+.forge-page .hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    border-radius: 30px;
+    padding: 28px;
+}
+
+.forge-page .eyebrow {
+    margin: 0 0 10px;
+    color: #0f766e;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.forge-page h1 {
+    margin: 0;
+    font-size: clamp(38px, 7vw, 86px);
+    line-height: 0.88;
+    letter-spacing: -0.06em;
+}
+
+.forge-page .summary {
+    max-width: 800px;
+    color: #5d6d68;
+    font-size: 17px;
+    line-height: 1.65;
+}
+
+.forge-page .status-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 210px;
+}
+
+.forge-page .pill {
+    border-radius: 999px;
+    display: inline-flex;
+    justify-content: center;
+    padding: 10px 14px;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+}
+
+.forge-page .pill.good {
+    background: #dff4e8;
+    color: #11623f;
+}
+
+.forge-page .pill.warn {
+    background: #fff1d6;
+    color: #8b5d12;
+}
+
+.forge-page .error {
+    margin-top: 16px;
+    border-radius: 18px;
+    color: #8b1d1d;
+    padding: 14px 16px;
+}
+
+.forge-page .grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.forge-page .card,
+.forge-page .script-card,
+.forge-page .guide {
+    border-radius: 26px;
+    padding: 22px;
+}
+
+.forge-page .card-title {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+.forge-page .card-title span {
+    align-items: center;
+    background: #10201b;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    font-family: "Courier New", monospace;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
+}
+
+.forge-page h2,
+.forge-page h3 {
+    margin: 0;
+    letter-spacing: -0.03em;
+}
+
+.forge-page .card p,
+.forge-page .guide li {
+    color: #5d6d68;
+    line-height: 1.6;
+}
+
+.forge-page .facts {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.forge-page .facts div,
+.forge-page .file-line {
+    background: rgba(240, 246, 242, 0.8);
+    border: 1px solid rgba(16, 32, 27, 0.08);
+    border-radius: 14px;
+    display: grid;
+    gap: 4px;
+    padding: 10px 12px;
+}
+
+.forge-page .facts strong,
+.forge-page .file-line span {
+    color: #10201b;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.forge-page .facts span,
+.forge-page .file-line code {
+    color: #65746f;
+    overflow-wrap: anywhere;
+}
+
+.forge-page .cap-grid,
+.forge-page .counter-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 16px;
+}
+
+.forge-page .cap-grid div,
+.forge-page .counter-row div {
+    background: #10201b;
+    border-radius: 16px;
+    color: #fff;
+    display: grid;
+    gap: 4px;
+    padding: 14px 12px;
+    text-align: center;
+}
+
+.forge-page .cap-grid b,
+.forge-page .counter-row b {
+    font-size: 24px;
+}
+
+.forge-page .counter-row span {
+    color: rgba(255, 255, 255, 0.72);
+    font-family: "Courier New", monospace;
+    font-size: 11px;
+}
+
+.forge-page .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.forge-page .actions a,
+.forge-page .script-head button {
+    background: #0f766e;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    cursor: pointer;
+    font-family: "Courier New", monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    text-decoration: none;
+}
+
+.forge-page .script-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.forge-page pre {
+    background: #10201b;
+    border-radius: 18px;
+    color: #dceee7;
+    max-height: 340px;
+    overflow: auto;
+    padding: 18px;
+    white-space: pre-wrap;
+}
+
+.forge-page .guide ol {
+    margin-bottom: 0;
+    padding-left: 22px;
+}
+
+@media (max-width: 900px) {
+    .forge-page {
+        padding: 18px;
+    }
+
+    .forge-page .hero,
+    .forge-page .grid {
+        grid-template-columns: 1fr;
+    }
+
+    .forge-page .hero {
+        display: grid;
+    }
+
+    .forge-page .cap-grid,
+    .forge-page .counter-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* openBIMForge Chinese launch console override - author: JY */
+.forge-cn {
+    padding: 24px;
+    background:
+        radial-gradient(circle at 10% 0%, rgba(10, 115, 100, 0.24), transparent 28%),
+        radial-gradient(circle at 92% 6%, rgba(217, 177, 85, 0.24), transparent 26%),
+        linear-gradient(135deg, #f4f8f4 0%, #e5eee8 100%);
+    font-family: "Microsoft YaHei", "Noto Sans SC", "PingFang SC", sans-serif;
+}
+
+.forge-cn code,
+.forge-cn pre {
+    font-family: "Cascadia Mono", "Consolas", monospace;
+}
+
+.forge-hero-cn {
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(16, 32, 27, 0.1);
+    border-radius: 28px;
+    box-shadow: 0 18px 60px rgba(16, 32, 27, 0.1);
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    padding: 28px;
+}
+
+.forge-title-block h1 {
+    font-size: clamp(42px, 7vw, 82px);
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    margin: 0;
+}
+
+.forge-kicker {
+    color: #0f766e;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    margin: 0 0 10px;
+    text-transform: uppercase;
+}
+
+.forge-title-block p {
+    color: #54655f;
+    font-size: 18px;
+    line-height: 1.75;
+    max-width: 900px;
+}
+
+.forge-main-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.forge-compact-bar {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(16, 32, 27, 0.1);
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(16, 32, 27, 0.06);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 16px 20px;
+}
+
+.forge-compact-bar .forge-readiness {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: transparent;
+    padding: 0;
+}
+
+.forge-compact-bar .forge-badge {
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+}
+
+.forge-compact-bar .forge-mini-note {
+    color: #54655f;
+    font-size: 12px;
+}
+
+.forge-compact-bar .forge-main-actions {
+    margin-top: 0;
+    gap: 8px;
+}
+
+.forge-compact-bar .forge-primary {
+    font-size: 14px;
+    min-height: 40px;
+    padding: 0 20px;
+}
+
+.forge-compact-bar .forge-secondary-button,
+.forge-compact-bar .forge-secondary {
+    font-size: 13px;
+    min-height: 36px;
+    padding: 0 16px;
+}
+
+.forge-primary,
+.forge-secondary,
+.forge-secondary-button,
+.forge-flow-card.highlight a,
+.forge-step-card button {
+    align-items: center;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    font-weight: 800;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.forge-primary {
+    background: #0b2b22;
+    box-shadow: 0 14px 30px rgba(11, 43, 34, 0.22);
+    color: #fff;
+    font-size: 20px;
+    min-height: 58px;
+    padding: 0 28px;
+}
+
+.forge-primary.disabled {
+    opacity: 0.55;
+}
+
+.forge-secondary {
+    background: #dff3e8;
+    color: #0b5e45;
+    min-height: 58px;
+    padding: 0 22px;
+}
+
+.forge-secondary-button {
+    background: #fff6d7;
+    color: #76510d;
+    font-size: 16px;
+    min-height: 58px;
+    padding: 0 22px;
+}
+
+.forge-readiness {
+    background: #10201b;
+    border-radius: 24px;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+}
+
+.forge-badge {
+    border-radius: 16px;
+    display: block;
+    font-weight: 800;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.forge-badge.ok {
+    background: #dff4e8;
+    color: #11623f;
+}
+
+.forge-badge.todo {
+    background: #fff0cf;
+    color: #81580d;
+}
+
+.forge-mini-note,
+.forge-muted {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.forge-flow {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 18px;
+}
+
+.forge-host-panel {
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(16, 32, 27, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 16px 44px rgba(16, 32, 27, 0.08);
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    margin-top: 18px;
+    padding: 22px;
+}
+
+.forge-host-panel h2,
+.forge-fallback-intro h2 {
+    margin: 0 0 8px;
+}
+
+.forge-host-panel p,
+.forge-fallback-intro p {
+    color: #5f706a;
+    line-height: 1.7;
+}
+
+.forge-host-methods {
+    background: #10201b;
+    border-radius: 20px;
+    color: #fff;
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+}
+
+.forge-host-methods code {
+    color: #dff4e8;
+    max-height: 160px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+}
+
+.forge-flow-card,
+.forge-status-card,
+.forge-step-card {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(16, 32, 27, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 16px 44px rgba(16, 32, 27, 0.08);
+    padding: 22px;
+}
+
+.forge-flow-card span {
+    align-items: center;
+    background: #10201b;
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    font-weight: 800;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+}
+
+.forge-flow-card h2,
+.forge-status-card h2,
+.forge-step-card h3 {
+    margin: 14px 0 8px;
+}
+
+.forge-flow-card p,
+.forge-step-card p,
+.forge-status-card .forge-muted {
+    color: #5f706a;
+    line-height: 1.65;
+}
+
+.forge-flow-card b {
+    color: #0f766e;
+}
+
+.forge-flow-card.highlight {
+    background: #10201b;
+    color: #fff;
+    transform: translateY(-4px);
+}
+
+.forge-flow-card.highlight span,
+.forge-flow-card.highlight a {
+    background: #dff4e8;
+    color: #10201b;
+}
+
+.forge-flow-card.highlight p {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.forge-flow-card.highlight a {
+    margin-top: 12px;
+    padding: 12px 18px;
+}
+
+.forge-status-panel,
+.forge-script-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    margin-top: 18px;
+}
+
+.forge-fallback-grid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.forge-fallback-intro {
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(16, 32, 27, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 16px 44px rgba(16, 32, 27, 0.08);
+    padding: 22px;
+}
+
+.forge-counters,
+.forge-cap-list {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.forge-counters div,
+.forge-cap-list div {
+    background: #10201b;
+    border-radius: 18px;
+    color: #fff;
+    display: grid;
+    gap: 6px;
+    padding: 16px 10px;
+    text-align: center;
+}
+
+.forge-counters b,
+.forge-cap-list b {
+    font-size: 28px;
+}
+
+.forge-counters span {
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.forge-path-row {
+    background: rgba(240, 246, 242, 0.86);
+    border: 1px solid rgba(16, 32, 27, 0.08);
+    border-radius: 16px;
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 14px;
+}
+
+.forge-path-row code {
+    color: #61716b;
+    overflow-wrap: anywhere;
+}
+
+.forge-step-card {
+    display: grid;
+    gap: 14px;
+}
+
+.forge-step-card button {
+    background: #0f766e;
+    color: #fff;
+    min-height: 48px;
+    padding: 0 18px;
+}
+
+.forge-step-card button:disabled {
+    background: #cfdcd5;
+    color: #60736a;
+    cursor: not-allowed;
+}
+
+.forge-step-card details {
+    color: #4e625a;
+}
+
+.forge-step-card pre {
+    background: #10201b;
+    border-radius: 16px;
+    color: #dff4e8;
+    max-height: 260px;
+    overflow: auto;
+    padding: 14px;
+    white-space: pre-wrap;
+}
+
+.forge-error {
+    background: #fff1f1;
+    border: 1px solid #ffd1d1;
+    border-radius: 18px;
+    color: #9b1c1c;
+    margin-top: 16px;
+    padding: 14px 16px;
+}
+
+@media (max-width: 980px) {
+    .forge-hero-cn,
+    .forge-host-panel,
+    .forge-flow,
+    .forge-status-panel,
+    .forge-script-grid,
+    .forge-fallback-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================
+   GLASSMORPHISM INPUT CAPSULE
+   ============================================ */
+.input-capsule {
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.input-capsule:focus-within {
+    border-color: rgba(0, 0, 0, 0.12);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.input-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.input-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.input-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}

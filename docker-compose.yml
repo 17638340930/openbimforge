@@ -1,0 +1,9 @@
+services:
+  openbimforge:
+    build:
+      context: .
+      args:
+        # Optional: set a subdirectory deployment path, for example /openbimforge.
+        - NEXT_PUBLIC_BASE_PATH=
+    ports: ["6002:6002"]
+    env_file: .env

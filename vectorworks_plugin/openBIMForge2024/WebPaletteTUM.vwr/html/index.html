@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>openBIMForge</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #1d1d1f;
+            --muted: #6e6e73;
+            --line: rgba(0, 0, 0, 0.08);
+            --panel: rgba(255, 255, 255, 0.72);
+            --accent: #0071e3;
+            --success: #34c759;
+            --warn: #ff9f0a;
+        }
+
+        * { box-sizing: border-box; }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            color: var(--ink);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at 18% 8%, rgba(0, 113, 227, 0.16), transparent 30%),
+                radial-gradient(circle at 88% 18%, rgba(52, 199, 89, 0.12), transparent 26%),
+                linear-gradient(180deg, #ffffff 0%, #f5f5f7 58%, #eef0f5 100%);
+            overflow: hidden;
+        }
+
+        .shell {
+            display: grid;
+            grid-template-rows: 1fr;
+            height: 100%;
+            min-height: 520px;
+            padding: 8px;
+        }
+
+        .topbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            padding: 14px 16px;
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            background: var(--panel);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(26px) saturate(1.35);
+            -webkit-backdrop-filter: blur(26px) saturate(1.35);
+        }
+
+        .brand { min-width: 0; }
+
+        .eyebrow {
+            margin: 0 0 4px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .title-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: baseline;
+        }
+
+        .title {
+            margin: 0;
+            font-size: clamp(26px, 4vw, 42px);
+            font-weight: 760;
+            letter-spacing: -0.055em;
+            line-height: 1;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .chip,
+        .link-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .chip {
+            border: 1px solid rgba(52, 199, 89, 0.2);
+            background: rgba(52, 199, 89, 0.11);
+            color: #1f7a3b;
+        }
+
+        .chip.warn {
+            border-color: rgba(255, 159, 10, 0.24);
+            background: rgba(255, 159, 10, 0.12);
+            color: #9a6100;
+        }
+
+        .link-button {
+            border: 1px solid rgba(0, 113, 227, 0.16);
+            background: rgba(0, 113, 227, 0.1);
+            color: var(--accent);
+            transition: transform 160ms ease, background 160ms ease;
+        }
+
+        .link-button:hover {
+            background: rgba(0, 113, 227, 0.16);
+            transform: translateY(-1px);
+        }
+
+        .frame-wrap {
+            position: relative;
+            min-height: 0;
+            border-radius: 34px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.07);
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: 0 34px 90px rgba(0, 0, 0, 0.11);
+        }
+
+        iframe {
+            display: block;
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            border: 0;
+            background: #fff;
+        }
+
+        .notice {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            z-index: 3;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 18px;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            background: rgba(255, 255, 255, 0.82);
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.45;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.09);
+            backdrop-filter: blur(22px) saturate(1.25);
+            -webkit-backdrop-filter: blur(22px) saturate(1.25);
+            transition: opacity 220ms ease, transform 220ms ease;
+        }
+
+        .notice strong { color: var(--ink); }
+        .notice.hidden { opacity: 0; pointer-events: none; transform: translateY(8px); }
+
+        @media (max-width: 720px) {
+            .shell { padding: 10px; gap: 10px; }
+            .topbar { grid-template-columns: 1fr; border-radius: 22px; }
+            .actions { justify-content: flex-start; }
+            .frame-wrap { border-radius: 24px; }
+            .notice { left: 10px; right: 10px; bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="frame-wrap">
+            <iframe
+                id="forgeFrame"
+                name="forgeFrame"
+                title="openBIMForge BIM 对话"
+                src="http://localhost:6002/zh?openBIMForge=1&mode=nexus&host=vectorworks"
+            >
+                请先启动 Next.js 前端：http://localhost:6002。
+            </iframe>
+            <div class="notice" id="hostNotice">
+                <span><strong>自动初始化中：</strong>正在连接 Vectorworks 原生桥，并唤醒 Runner。</span>
+                <span>首次启动可能需要几秒。</span>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        (function () {
+            const frame = document.getElementById("forgeFrame");
+            const notice = document.getElementById("hostNotice");
+            const nativeBridge = window.tumIntegrator || null;
+            let startupTriggered = false;
+
+            function nativeMethods() {
+                if (!nativeBridge) return [];
+                const names = new Set();
+                let cursor = nativeBridge;
+                while (cursor && cursor !== Object.prototype) {
+                    Object.getOwnPropertyNames(cursor).forEach((name) => {
+                        if (typeof nativeBridge[name] === "function") names.add(name);
+                    });
+                    cursor = Object.getPrototypeOf(cursor);
+                }
+                return Array.from(names).sort();
+            }
+
+            function postToFrame(payload) {
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.postMessage({ source: "openBIMForgeVectorworksHost", ...payload }, "*");
+                }
+            }
+
+            function setBridgeState(text, ok, detail) {
+                if (notice) {
+                    notice.innerHTML = detail || "";
+                    notice.classList.toggle("hidden", ok);
+                }
+            }
+
+            function reply(id, ok, data, error) {
+                postToFrame({ type: "OPENBIMFORGE_HOST_REPLY", id, ok, data, error });
+            }
+
+            function fireAndForget(promise) {
+                Promise.resolve(promise).catch((err) => {
+                    setBridgeState(
+                        "需要检查",
+                        false,
+                        `<span><strong>Runner 初始化未确认：</strong>${err && err.message ? err.message : String(err)}</span><span>可进入诊断工作台查看。</span>`
+                    );
+                });
+            }
+
+            async function callNative(id, action, payload) {
+                const methods = nativeMethods();
+                if (!nativeBridge) {
+                    reply(id, false, { methods }, "当前页面没有检测到 Vectorworks 原生桥 tumIntegrator。请确认是从 Vectorworks Web Palette 打开的 openBIMForge。");
+                    return;
+                }
+
+                const modernMethod = {
+                    scanCapabilities: "openBIMForgeScanCapabilities",
+                    startRunner: "openBIMForgeStartRunner",
+                    runPending: "openBIMForgeRunPending",
+                }[action];
+
+                if (
+                    action === "runPending" &&
+                    !(modernMethod && typeof nativeBridge[modernMethod] === "function") &&
+                    typeof nativeBridge.getAllPlantDataV2 === "function"
+                ) {
+                    try {
+                        postToFrame({
+                            type: "OPENBIMFORGE_VM_STATUS",
+                            status: "running",
+                            payloadPath: payload && payload.payloadPath,
+                            message: "Dispatching exact Transit-Payload through the legacy Vectorworks bridge."
+                        });
+                        const legacyCommand = "__OPENBIMFORGE_RUN_ONCE__";
+                        const legacyPayload = JSON.stringify(payload || {});
+                        const result = await nativeBridge.getAllPlantDataV2(legacyCommand, legacyPayload);
+                        postToFrame({
+                            type: "OPENBIMFORGE_VM_STATUS",
+                            status: "dispatched",
+                            payloadPath: payload && payload.payloadPath,
+                            message: "Exact Transit-Payload dispatched to Vectorworks VM."
+                        });
+                        reply(id, true, {
+                            result,
+                            method: "getAllPlantDataV2",
+                            compatibilityMode: "legacy-openBIMForge-run-pending-exact",
+                            methods
+                        });
+                    } catch (err) {
+                        postToFrame({
+                            type: "OPENBIMFORGE_VM_STATUS",
+                            status: "failed",
+                            payloadPath: payload && payload.payloadPath,
+                            message: err && err.message ? err.message : String(err)
+                        });
+                        reply(
+                            id,
+                            false,
+                            { method: "getAllPlantDataV2", compatibilityMode: "legacy-openBIMForge-run-pending-exact", methods },
+                            err && err.message ? err.message : String(err)
+                        );
+                    }
+                    return;
+                }
+
+                if (modernMethod && typeof nativeBridge[modernMethod] === "function") {
+                    try {
+                        const result = await nativeBridge[modernMethod](JSON.stringify(payload || {}));
+                        reply(id, true, { result, method: modernMethod, methods });
+                    } catch (err) {
+                        reply(id, false, { method: modernMethod, methods }, err && err.message ? err.message : String(err));
+                    }
+                    return;
+                }
+
+                if (action === "startRunner" && typeof nativeBridge.getAllPlantDataV2 === "function") {
+                    try {
+                        const legacyCommand = "__OPENBIMFORGE_RUN_ONCE__";
+                        const legacyPayload = JSON.stringify(payload || {});
+                        const result = await nativeBridge.getAllPlantDataV2(legacyCommand, legacyPayload);
+                        reply(id, true, {
+                            result,
+                            method: "getAllPlantDataV2",
+                            compatibilityMode: "legacy-openBIMForge-run-once",
+                            methods
+                        });
+                    } catch (err) {
+                        reply(
+                            id,
+                            false,
+                            { method: "getAllPlantDataV2", compatibilityMode: "legacy-openBIMForge-run-once", methods },
+                            err && err.message ? err.message : String(err)
+                        );
+                    }
+                    return;
+                }
+
+                reply(
+                    id,
+                    false,
+                    { methods, requestedAction: action, missingMethod: modernMethod },
+                    "当前安装的 Vectorworks 插件只检测到旧版 Web Palette 桥，还没有暴露 openBIMForge 自动 Runner 方法。需要更新 .vlb 原生插件，或暂时使用脚本兜底。"
+                );
+            }
+
+            function runStartupHandshake() {
+                if (startupTriggered) return;
+                startupTriggered = true;
+
+                const methods = nativeMethods();
+                if (!nativeBridge) {
+                    setBridgeState(
+                        "浏览器模式",
+                        false,
+                        "<span><strong>未检测到 Vectorworks 原生桥：</strong>普通浏览器中可正常聊天，但不会自动加载到 VM。</span><span>请从 VW Web Palette 打开。</span>"
+                    );
+                    return;
+                }
+
+                setBridgeState(
+                    "自动初始化中",
+                    false,
+                    `<span><strong>已连接 Vectorworks：</strong>检测到 ${methods.length} 个原生方法，正在唤醒 Runner。</span><span>完成后可直接聊天生成。</span>`
+                );
+
+                if (typeof nativeBridge.openBIMForgeStartRunner === "function") {
+                    fireAndForget(nativeBridge.openBIMForgeStartRunner(JSON.stringify({ source: "palette-init" })));
+                    startPayloadPolling();
+                    setTimeout(() => setBridgeState("已就绪", true, ""), 1600);
+                    return;
+                }
+
+                if (typeof nativeBridge.getAllPlantDataV2 === "function") {
+                    fireAndForget(nativeBridge.getAllPlantDataV2("__OPENBIMFORGE_RUN_ONCE__", JSON.stringify({ source: "palette-init" })));
+                    startPayloadPolling();
+                    setTimeout(() => setBridgeState("已就绪", true, ""), 2200);
+                    return;
+                }
+
+                setBridgeState(
+                    "需要检查",
+                    false,
+                    "<span><strong>缺少 Runner 方法：</strong>请进入诊断工作台检查插件桥接。</span><span>当前只能手动兜底。</span>"
+                );
+            }
+
+            /* ---- Nexus Payload Polling ---- */
+            let lastPolledPendingPath = "";
+            const RUNNER_API = "http://localhost:6002/api/bim/forge-architect-runner";
+            const POLL_INTERVAL_MS = 5 * 60 * 1000;
+            const ENABLE_FALLBACK_POLLING =
+                new URLSearchParams(window.location.search).get("openBIMForgePoll") === "1" ||
+                window.localStorage.getItem("openbimforge-enable-polling") === "true";
+
+            async function pollAndExecute() {
+                if (!nativeBridge) return;
+                const hasModern = typeof nativeBridge.openBIMForgeRunPending === "function";
+                const hasLegacy = typeof nativeBridge.getAllPlantDataV2 === "function";
+                if (!hasModern && !hasLegacy) return;
+                try {
+                    const res = await fetch(RUNNER_API, { cache: "no-store" });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const pendingPath = data.latest && data.latest.pending && data.latest.pending.path;
+                    if (!pendingPath || pendingPath === lastPolledPendingPath) return;
+                    if (data.counts && data.counts.pending > 0) {
+                        lastPolledPendingPath = pendingPath;
+                        console.log("[Nexus-Poll] Found pending payload:", pendingPath);
+                        setBridgeState(
+                            "执行中",
+                            false,
+                            `<span><strong>检测到 Transit-Payload：</strong>正在触发 Vectorworks 执行...</span><span>${pendingPath.split(/[/\\]/).pop()}</span>`
+                        );
+                        postToFrame({
+                            type: "OPENBIMFORGE_VM_STATUS",
+                            status: "running",
+                            payloadPath: pendingPath,
+                            message: "Vectorworks VM is processing the Transit-Payload."
+                        });
+                        try {
+                            const runPayload = JSON.stringify({
+                                payloadPath: pendingPath,
+                                source: "nexus-poll"
+                            });
+                            if (hasModern) {
+                                await nativeBridge.openBIMForgeRunPending(runPayload);
+                                console.log("[Nexus-Poll] openBIMForgeRunPending dispatched");
+                            } else {
+                                await nativeBridge.getAllPlantDataV2("__OPENBIMFORGE_RUN_ONCE__", runPayload);
+                                console.log("[Nexus-Poll] getAllPlantDataV2(RUN_PENDING) dispatched (legacy)");
+                            }
+                            postToFrame({
+                                type: "OPENBIMFORGE_VM_STATUS",
+                                status: "dispatched",
+                                payloadPath: pendingPath,
+                                message: "Transit-Payload dispatched to Vectorworks VM."
+                            });
+                            setTimeout(() => setBridgeState("已就绪", true, ""), 3000);
+                        } catch (execErr) {
+                            console.warn("[Nexus-Poll] Execution dispatch failed:", execErr);
+                            postToFrame({
+                                type: "OPENBIMFORGE_VM_STATUS",
+                                status: "failed",
+                                payloadPath: pendingPath,
+                                message: execErr && execErr.message ? execErr.message : String(execErr)
+                            });
+                            setBridgeState(
+                                "执行失败",
+                                false,
+                                `<span><strong>VM 执行调度失败：</strong>${execErr && execErr.message ? execErr.message : String(execErr)}</span><span>可手动运行脚本兜底。</span>`
+                            );
+                        }
+                    }
+                } catch (pollErr) {
+                    // Silent fail — runner API may not be ready yet
+                }
+            }
+
+            function startPayloadPolling() {
+                if (!nativeBridge) return;
+                if (!ENABLE_FALLBACK_POLLING) {
+                    console.log("[Nexus-Poll] Fallback runner polling disabled. Execution is event-driven.");
+                    return;
+                }
+                console.log("[Nexus-Poll] Starting payload polling every " + (POLL_INTERVAL_MS / 1000) + "s");
+                setInterval(pollAndExecute, POLL_INTERVAL_MS);
+                // Low-frequency fallback only. Normal execution is triggered by the iframe.
+                setTimeout(pollAndExecute, 60000);
+            }
+
+            window.addEventListener("message", (event) => {
+                const message = event.data || {};
+                if (message.source !== "openBIMForgeNext") return;
+                if (message.type === "OPENBIMFORGE_HOST_STATUS") {
+                    const methods = nativeMethods();
+                    const connected = !!nativeBridge;
+                    reply(message.id, connected, { methods, hasTumIntegrator: connected });
+                    return;
+                }
+                if (message.type === "OPENBIMFORGE_HOST_ACTION") {
+                    callNative(message.id, message.action, message.payload || {});
+                }
+            });
+
+            frame.addEventListener("load", () => {
+                postToFrame({
+                    type: "OPENBIMFORGE_HOST_READY",
+                    data: {
+                        hasTumIntegrator: !!nativeBridge,
+                        methods: nativeMethods(),
+                    },
+                });
+                runStartupHandshake();
+            });
+        })();
+    </script>
+</body>
+</html>

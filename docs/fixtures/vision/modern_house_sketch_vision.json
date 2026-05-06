@@ -1,0 +1,144 @@
+{
+  "schema_version": "Nexus-Vision-BIM-JSON 0.1",
+  "input_type": "architectural_sketch",
+  "visual_summary": "A two-story modern minimalist residential villa characterized by a large, cantilevered rectangular upper volume over a recessed ground floor entrance and carport area.",
+  "semantic_slots": {
+    "building_type": {
+      "value": "Private Residential Villa",
+      "confidence": 0.95
+    },
+    "storey_count": {
+      "value": 2,
+      "confidence": 0.9
+    },
+    "target_area": {
+      "value": "unknown",
+      "confidence": 0.0
+    },
+    "floor_height": {
+      "value": "unknown",
+      "confidence": 0.0
+    }
+  },
+  "architectural_style": {
+    "value": "Modern Minimalist / Contemporary Brutalism",
+    "confidence": 0.85,
+    "evidence": [
+      "Pure geometric volumes",
+      "Cantilevered massing",
+      "Exposed material textures",
+      "Recessed openings"
+    ]
+  },
+  "massing": {
+    "overall_form": "Rectangular prism cantilevered over a void-heavy ground floor podium.",
+    "estimated_levels": "2",
+    "volume_relationships": [
+      "Upper floor projects forward to create a covered space below",
+      "Ground floor is partially recessed into the building footprint"
+    ],
+    "cantilever_or_projection": "Major front-facing cantilever over the carport area.",
+    "confidence": 0.95
+  },
+  "facade_elements": [
+    {
+      "type": "Textured Concrete Wall",
+      "location": "Upper floor facade",
+      "description": "Solid monolithic surface with dot texture representing fair-faced concrete tie-rod holes.",
+      "confidence": 0.85
+    },
+    {
+      "type": "Horizontal Slat System",
+      "location": "Ground floor carport and entry walls",
+      "description": "Repetitive horizontal lines suggesting timber or metal cladding.",
+      "confidence": 0.9
+    }
+  ],
+  "openings": [
+    {
+      "type": "Deeply Recessed Window",
+      "location": "Upper floor right side",
+      "description": "Large single-pane window set deep into the upper facade volume.",
+      "confidence": 0.9
+    },
+    {
+      "type": "Concealed Entrance Door",
+      "location": "Ground floor right",
+      "description": "Entrance door integrated into the horizontal slatted wall pattern.",
+      "confidence": 0.75
+    },
+    {
+      "type": "Carport Opening",
+      "location": "Ground floor center",
+      "description": "Wide, unobstructed opening for vehicle access under the cantilever.",
+      "confidence": 0.95
+    }
+  ],
+  "site_elements": [
+    {
+      "type": "Planter Box",
+      "location": "Ground floor right boundary",
+      "description": "Low-profile rectangular planter along the pedestrian path.",
+      "confidence": 0.85
+    },
+    {
+      "type": "Landscape Greenery",
+      "location": "Left boundary and planters",
+      "description": "Organic bush/shrub forms at the site edges.",
+      "confidence": 0.8
+    },
+    {
+      "type": "Access Ramp/Walkway",
+      "location": "Foreground",
+      "description": "Ground plane treatment leading to the carport and entrance.",
+      "confidence": 0.75
+    }
+  ],
+  "material_cues": [
+    {
+      "material": "Fair-faced Concrete",
+      "location": "Upper volume",
+      "evidence": "Regular dot patterns across the rectangular facade.",
+      "confidence": 0.8
+    },
+    {
+      "material": "Timber or Aluminum Slats",
+      "location": "Ground floor infill walls",
+      "evidence": "Rhythmic horizontal line work.",
+      "confidence": 0.75
+    },
+    {
+      "material": "Glass",
+      "location": "Upper floor window",
+      "evidence": "Reflective/transparent representation within recessed frame.",
+      "confidence": 0.9
+    }
+  ],
+  "generation_constraints": [
+    "Maintain the structural cantilever of the second floor over the ground floor carport.",
+    "The depth of the upper floor window recess must be consistent with the massing depth.",
+    "Align the horizontal slat spacing across the ground floor walls and entrance door for a seamless look.",
+    "Ensure recessed ceiling lights (soffit lighting) are placed under the cantilevered volume."
+  ],
+  "bim_generation_intent": {
+    "recommended_route": "nexus-visionary",
+    "recommended_output": "conceptual_mass_and_facade",
+    "do_not_infer": [
+      "exact_dimensions",
+      "structural_system",
+      "detailed_floor_plan"
+    ]
+  },
+  "missing_required_slots": [
+    "total_floor_area",
+    "site_boundary_dimensions",
+    "specific_window_frame_profiles",
+    "internal_staircase_location"
+  ],
+  "clarification_questions": [
+    "Is the upper facade intended to be fair-faced concrete or stone cladding?",
+    "Should the garage area include a garage door, or remain an open carport as sketched?",
+    "What is the required floor-to-ceiling height for the ground floor?",
+    "Are the ceiling dots under the cantilever intended to be recessed spotlights?"
+  ]
+}
