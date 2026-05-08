@@ -448,7 +448,7 @@ function spawnBridgeProcess(
             console.log(`${"═".repeat(60)}\n`)
 
             if (code && !stdout.trim()) {
-                reject(new Error(`Nexus-Orchestrator failed with exit code ${code}\n${stderr}`))
+                reject(new Error(`Nexus-Orchestrator failed with exit code ${code}. Check internal logs for details.`))
                 return
             }
             resolve({ stdout, stderr, exitCode: code, stages, logs, statePath })
@@ -461,7 +461,7 @@ export async function runNexusArchitectAdapter(
     options: RunNexusArchitectAdapterOptions = {},
 ): Promise<NexusArchitectAdapterOutput> {
     const projectRoot = getNexusArchitectRoot()
-    const capabilityStatus = await getVectorworksCapabilityStatus(projectRoot)
+    const _capabilityStatus = await getVectorworksCapabilityStatus(projectRoot)
     
     const bridgeScript = path.join(projectRoot, "forge_core", "build_agent", "adapter_entry.py")
     const pythonCommand = await resolvePythonCommand(projectRoot)

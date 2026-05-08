@@ -60,32 +60,42 @@ def resolve_state_path(project_root: str, payload: dict) -> str:
 
 
 def extract_semantic_slots(text: str) -> dict:
-    floor_match = re.search(r"(\d+)\s*(层|楼|floors?|storeys?)", text, re.IGNORECASE)
+    floor_match = re.search(r"(\d+)\s*(?:floors?|storeys?|storey|floor)", text, re.IGNORECASE)
     area_match = re.search(
-        r"(\d+(?:\.\d+)?)\s*(㎡|m2|m²|square meters?)", text, re.IGNORECASE
+        r"(\d+(?:\.\d+)?)\s*(?:m2|m\^2|square meters?|sqm)",
+        text,
+        re.IGNORECASE,
     )
     height_match = re.search(
-        r"(层高|净高|floor height|storey height)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*(m|米|meter|meters)",
+        r"(?:floor height|storey height|total massing height|height)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*(?:m|meter|meters)",
         text,
         re.IGNORECASE,
     )
 
     building_type = None
-    for token in [
-        "办公楼", "住宅", "公寓", "医院", "学校",
-        "office", "residential", "apartment", "hospital", "school",
-    ]:
-        if re.search(token, text, re.IGNORECASE):
-            building_type = token
+    building_aliases = [
+        ("office", ["office"]),
+        ("residential", ["residential", "housing"]),
+        ("apartment", ["apartment"]),
+        ("hospital", ["hospital"]),
+        ("school", ["school", "campus"]),
+        ("hotel", ["hotel"]),
+        ("industrial", ["factory", "industrial"]),
+        ("commercial", ["mall", "commercial"]),
+        ("image-guided building", ["image-guided building", "ForgeVision-Form", "massing"]),
+    ]
+    for value, aliases in building_aliases:
+        if any(re.search(re.escape(alias), text, re.IGNORECASE) for alias in aliases):
+            building_type = value
             break
 
     return {
         "building_type": building_type,
         "storey_count": int(floor_match.group(1)) if floor_match else None,
         "target_area_m2": float(area_match.group(1)) if area_match else None,
-        "floor_height_m": float(height_match.group(2)) if height_match else None,
+        "floor_height_m": float(height_match.group(1)) if height_match else None,
+        "structure_system": "stepped_columns" if "multi-volume stepped massing" in text else None,
     }
-
 
 def make_unified_bim_json(payload: dict, slots: dict, mode: str) -> dict:
     return {
@@ -125,6 +135,7 @@ def prepare_nexus_transit_payload(payload: dict, generation_result: dict) -> dic
     run_stem = f"nexus_payload_{session_id[:16]}_{timestamp}"
     handoff_path = (handoff_dir / f"{run_stem}.json").resolve()
     result_path = (handoff_dir / f"{run_stem}.result.json").resolve()
+    pending_path = Path(f"{result_path}.pending.json")
     
     runner_script = (
         Path(project_root) / "forge_core" / "build_agent" / "vectorworks_execute.py"
@@ -156,6 +167,21 @@ def prepare_nexus_transit_payload(payload: dict, generation_result: dict) -> dic
         json.dumps(transit_payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    pending_path.write_text(
+        json.dumps(
+            {
+                "ok": False,
+                "pending": True,
+                "status": "waiting_for_vectorworks_vm",
+                "handoff_path": str(handoff_path),
+                "result_path": str(result_path),
+                "message": "Transit-Payload queued. Waiting for Vectorworks VM execution.",
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     
     log_progress(f"Transit-Payload synthesized: {handoff_path.name}")
     
@@ -164,13 +190,13 @@ def prepare_nexus_transit_payload(payload: dict, generation_result: dict) -> dic
         [
             {
                 "id": "transit_payload",
-                "label": "Transit-Payload (载荷交付)",
+                "label": "Transit-Payload",
                 "status": "completed",
                 "detail": f"Payload delivered to {handoff_path.name}",
             },
             {
                 "id": "nexus_execute",
-                "label": "Nexus-Execute (物理构筑)",
+                "label": "Nexus-Execute",
                 "status": "waiting",
                 "detail": "Synthesis Node is polling for the Transit-Payload.",
             },
@@ -203,7 +229,7 @@ def run_nexus_live_orchestration(payload: dict) -> dict:
     if not project_root:
         raise RuntimeError("OPENBIMFORGE_ROOT environment variable is missing.")
 
-    log_progress(f"协同编排任务启动 | Mode: {execution_mode} | Model: {llm_config.get('modelId', 'default')}")
+    log_progress(f"Nexus orchestration task started | Mode: {execution_mode} | Model: {llm_config.get('modelId', 'default')}")
     
     llm_config_json = json.dumps(llm_config)
     os.environ["OPENBIMFORGE_LLM_CONFIG_JSON"] = llm_config_json
@@ -233,33 +259,32 @@ def run_nexus_live_orchestration(payload: dict) -> dict:
         return generation_result
 
     # [3/4] Transit
-    print_stage_header(3, "TRANSIT-PAYLOAD (载荷交付)")
-    print(">> 状态: 正在封包 Transit-Payload...", file=sys.stderr, flush=True)
+    print_stage_header(3, "TRANSIT-PAYLOAD")
+    print(">> Stage 3: packaging Transit-Payload...", file=sys.stderr, flush=True)
     transit_data = prepare_nexus_transit_payload(payload, generation_result)
-    handoff_name = Path(transit_data['handoff_path']).name
-    print(f">> 存储: forge_runtime\\handoffs\\{handoff_name}", file=sys.stderr, flush=True)
-    print("[✓] 状态: 交付就绪", file=sys.stderr, flush=True)
-    
+    handoff_name = Path(transit_data["handoff_path"]).name
+    print(f">> Handoff: forge_runtime\\handoffs\\{handoff_name}", file=sys.stderr, flush=True)
+    print("[OK] Transit-Payload ready", file=sys.stderr, flush=True)
+
     # [4/4] Execute
     if execution_mode == "vectorworks":
-        print_stage_header(4, "NEXUS-EXECUTE (物理构筑)")
-        print(">> 状态: Transit-Payload 已排队，等待 Vectorworks Web Palette / VM 拉取执行...", file=sys.stderr, flush=True)
-        print(">> 说明: 外部 Python 进程不执行 vs.*，避免生成伪 .result.json 阻断 VM。", file=sys.stderr, flush=True)
+        print_stage_header(4, "NEXUS-EXECUTE")
+        print(">> Stage 4: payload queued; waiting for Vectorworks Web Palette / VM execution...", file=sys.stderr, flush=True)
+        print(">> Note: external Python does not execute vs.* commands; VM writes the real .result.json.", file=sys.stderr, flush=True)
         emit_stage_event({
             "id": "nexus_execute",
-            "label": "Nexus-Execute (物理构筑)",
+            "label": "Nexus-Execute",
             "status": "waiting",
-            "detail": "Transit-Payload queued. Waiting for Vectorworks VM execution."
+            "detail": "Transit-Payload queued. Waiting for Vectorworks VM execution.",
         })
         transit_data["summary_note"] = "Transit-Payload queued. Waiting for Vectorworks VM execution."
     else:
-        # Dry-run
         log_progress(">> DRY-RUN: Skipping physical execution.")
         emit_stage_event({
             "id": "nexus_execute",
-            "label": "Nexus-Execute (物理构筑)",
+            "label": "Nexus-Execute",
             "status": "completed",
-            "detail": "Dry-run complete."
+            "detail": "Dry-run complete.",
         })
 
     log_progress("Nexus Task Finished Successfully.")

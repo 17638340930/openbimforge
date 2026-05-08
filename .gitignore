@@ -70,6 +70,10 @@ ai-models.json
 /forge_runtime/artifacts/
 /forge_runtime/state/
 /forge_runtime/logs/
+/forge_runtime/layout_inputs/
+/forge_runtime/layout_outputs/
+/forge_runtime/nexus_visionary_inputs/
+/forge_runtime/test_inputs/
 /private_docs/
 **/__pycache__/
 

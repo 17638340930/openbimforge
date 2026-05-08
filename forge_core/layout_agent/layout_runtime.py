@@ -64,6 +64,7 @@ def run_layout(image_path: str, session_id: str | None = None) -> dict[str, Any]
                 output_dir=dirs["output_dir"],
                 log_path=log_path,
                 preview_paths=[str(fallback_preview)],
+                cad_vector_paths=outputs["cad_vector_paths"],
             )
 
         return _result(
@@ -76,6 +77,7 @@ def run_layout(image_path: str, session_id: str | None = None) -> dict[str, Any]
             log_path=log_path,
             preview_paths=outputs["preview_paths"],
             stl_paths=outputs["stl_paths"],
+            cad_vector_paths=outputs["cad_vector_paths"],
         )
     except subprocess.TimeoutExpired:
         return _result(
@@ -156,6 +158,7 @@ def _result(
     log_path: Path,
     preview_paths: list[str] | None = None,
     stl_paths: list[str] | None = None,
+    cad_vector_paths: list[str] | None = None,
     error: str | None = None,
 ) -> dict[str, Any]:
     return {
@@ -167,6 +170,7 @@ def _result(
         "output_dir": str(output_dir),
         "preview_paths": preview_paths or [],
         "stl_paths": stl_paths or [],
+        "cad_vector_paths": cad_vector_paths or [],
         "log_path": str(log_path),
         "error": error,
     }

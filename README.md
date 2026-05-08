@@ -1,190 +1,174 @@
 # openBIMForge
 
-## 项目简介
+**面向建筑信息模型（BIM）的多模态智能生成与 Vectorworks 原生构筑系统**
 
-openBIMForge 是一个面向建筑信息模型（BIM）自动化的生成式 Agent 编排系统。它通过多智能体协同机制，将用户的自然语言需求或模糊设计意图转化为工业级 BIM 软件（如 Vectorworks）中的结构化建模任务。
+openBIMForge 是一个将自然语言、语音指令与建筑草图转化为 BIM 构筑任务的生成式 Agent 系统。项目以 **Nexus 多智能体编排框架** 为核心，通过 Architect-Agent、Constructor-Agent 与 Vectorworks VM 执行层协同，把用户的建筑意图转化为可在专业 BIM 软件中运行的原生 Python 构筑脚本，并完成模型生成、IFC 导出与结果回写。
 
-该系统集成了 **ForgeVision** 视觉输入实验链路，支持从建筑草图提取视觉语义，并结合意图澄清环（Clarification Loop）实现高精度的 BIM 实体自动合成，旨在大幅降低 BIM 建模的专业门槛与重复劳动。
+该版本已打通从 Web 交互、LLM 规划、ForgeVision 图像理解、CAD-First 矢量约束，到 Vectorworks 物理执行的完整链路，可作为 **AI + BIM 自动建模方向的工程原型、毕业论文系统与面试展示项目**。
 
-## 核心亮点
+## 项目亮点
 
-### 1. Clarification Loop：槽位填充式意图澄清
-通过预设的 Slot-filling 机制（如建筑类型、层数、层高、面积等），自动识别并追问缺失的关键建模参数，确保在进入编排阶段前实现语义对齐。
+### 1. Nexus 多智能体 BIM 编排
 
-### 2. Multi-Agent Workflow：Architect / Constructor / Fixer 多智能体协作
-采用角色解耦的架构：Architect Agent 负责顶层空间规划与设计逻辑；Constructor Agent 专注于在物理环境下合成高鲁棒性的 BIM 构筑代码；具备基础的自愈反馈闭环。
+系统将 BIM 生成拆分为“语义规划”和“物理构筑”两个阶段：
 
-### 3. Tool Contract：基于 Capability Scan 的构件幻觉抑制
-在生成前动态扫描 Vectorworks 宿主环境的构件库（Styles/Symbols），建立“工具契约”，通过 Prompt 约束强制 LLM 仅使用环境内存在的构件，有效抑制专业幻觉。
+- **Architect-Agent**：理解建筑需求，补全空间逻辑、层数、功能区、体量关系与设计约束。
+- **Constructor-Agent**：将规划结果转化为 Vectorworks Python 构筑代码，生成墙体、楼板、空间、核心筒、屋顶与构件。
+- **Stage4 Vectorworks VM**：在 Vectorworks 宿主环境中真实执行 `vs.*` 调用，避免外部 Python 伪执行。
 
-### 4. Unified LLM Router：多模型动态路由
-封装统一的模型适配层，支持根据任务复杂度在 OpenAI、Claude、Gemini 及本地部署的 Qwen/Llama 模型间无缝切换，兼顾推理能力与响应成本。
+### 2. Text-to-BIM 全链路
 
-### 5. Payload / Handoff：Web 与 BIM Runtime 异步解耦
-设计了轻量化的 Transit-Payload 协议，通过 JSON 载荷实现 Web 交互端与重型 BIM 执行引擎（Vectorworks VM）的物理隔离与异步任务交付。
+支持通过自然语言描述生成 BIM，例如：
 
-### 6. Vectorworks Runtime：真实 BIM 引擎执行与 IFC 输出
-通过 Python-BIM 桥接层直接驱动专业 BIM 引擎进行构筑，支持 15+ 种核心构件自动生成，并可一键导出标准 IFC 格式文件。
+> 生成一栋 6 层办公楼，面积 4200 平方米，层高 3.6 米，以开放办公为主，包含会议室、核心筒和屋顶设备层。
 
-### 7. ForgeVision：视觉输入实验链路
-实验性的 Image-to-BIM 通路，支持对建筑草图进行语义解析，识别体块关系、立面元素与材料线索，为后续的生成链路提供多模态参考。
+系统会自动完成需求识别、Agent 编排、Payload 交付、Vectorworks 执行与结果同步。
+
+### 3. ForgeVision-Form 图像形体链路
+
+系统支持上传建筑草图、体量图或概念图，通过 ForgeVision-Form 解析视觉形体，生成：
+
+- 预览图（Preview）
+- 三维体量参考（STL）
+- CAD 矢量序列（cad_vector.json）
+
+这些结果会作为 `ForgeVisionConstraints` 自动注入 Nexus，让 LLM 不再只依赖文字描述，而能参考视觉体量进行 BIM 重构。
+
+### 4. CAD-First 高精度矢量构筑
+
+当图像解析得到的 CAD vector 复杂度达到阈值时，系统会自动进入 **CAD-First** 模式：
+
+- 读取 `complexity_score`
+- 提取关键坐标点 `[CAD_COORDINATES]`
+- 强制 Constructor-Agent 使用 polygon / slab / wall 逻辑
+- 减少“白模化”和简单 Box 生成
+- 提升复杂退台、异形轮廓、组合体量的几何贴合度
+
+### 5. Vectorworks 真实物理执行闭环
+
+系统采用 `Transit-Payload` 文件协议连接 Web 与 Vectorworks：
+
+1. Web / Python 编排层生成 `nexus_payload_*.json`
+2. Vectorworks Web Palette 轮询 pending payload
+3. VLB 插件调用 Vectorworks Python VM
+4. `vectorworks_execute.py` 在 VM 内执行构筑代码
+5. 写回 `.result.json`
+6. 前端状态卡片同步完成结果
+
+该机制实现了 Web UI 与专业 BIM 宿主之间的异步解耦。
+
+### 6. 工程级状态对账
+
+为避免 Stage4 异步执行误报失败，系统引入 pending 文件机制：
+
+- `.result.json.pending.json`：表示 payload 已交付，等待 Vectorworks VM 回写
+- `.result.json`：表示 VM 已完成真实执行
+- 前端在等待期间显示“等待 VM 回写”，不会把正常等待误判为失败
+
+## 当前已实现
+
+- 文本输入 → Nexus → Vectorworks BIM 生成
+- 语音转文字 → 文本 BIM 链路
+- 图片上传 → ForgeVision-Form → Nexus
+- CAD vector → CAD-First 高精度分支
+- Transit-Payload 异步交付
+- Vectorworks Web Palette / VLB / VM 执行闭环
+- `.result.json` 结果回写与前端状态同步
+- 前端隐藏技术 JSON，展示 ForgeVision 几何约束卡片
+- PowerShell 开发日志降噪与关键节点输出
+
+## 当前规划
+
+下一阶段重点是 **ForgeVision-Layout**：
+
+- 识别平面图中的房间、走廊、门窗、核心筒和功能分区
+- 输出 `rooms / walls / doors / adjacency / corridor / core` 空间拓扑 JSON
+- 将空间拓扑注入 Nexus，让 Constructor 生成真正的室内布局和房间墙线
+
+当前 ForgeVision-Layout 尚未完整实现，现阶段已完成的是 ForgeVision-Form 与 CAD-First 形体链路。
 
 ## 系统架构
 
 ```mermaid
-graph TD
-    subgraph "Frontend (Next.js)"
-        User[User Input / Sketch] --> UI[Chat UI]
-        UI --> CL[Clarification Loop]
-    end
-
-    subgraph "ForgeVision (Experimental)"
-        Sketch[Image / Sketch] --> VS[Vision Semantics Parser]
-        VS --> V_BIM_JSON[Visual BIM-JSON]
-    end
-
-    subgraph "Nexus Agent Orchestrator (Python)"
-        V_BIM_JSON --> NO[Nexus Orchestrator]
-        CL --> NO
-        NO --> AA[Architect Agent]
-        AA --> CA[Constructor Agent]
-        CA --> TC[Tool Contract / Capability Scan]
-    end
-
-    subgraph "BIM Runtime (Vectorworks)"
-        TC --> Handoff[Unified BIM-JSON / Handoff]
-        Handoff --> VW[Vectorworks VM]
-        VW --> Output[BIM Entity / IFC Output]
-    end
+flowchart TD
+    A["用户输入：文字 / 语音 / 图片"] --> B["Next.js Chat UI"]
+    B --> C{"输入类型"}
+    C -->|"文字 / 语音"| D["/api/chat"]
+    C -->|"图片"| E["ForgeVision-Form"]
+    E --> F["STL / Preview / CAD Vector"]
+    F --> D
+    D --> G["Nexus Architect-Agent"]
+    G --> H["Nexus Constructor-Agent"]
+    H --> I["Transit-Payload JSON"]
+    I --> J["Vectorworks Web Palette / VLB"]
+    J --> K["Vectorworks Python VM"]
+    K --> L["BIM Model / VWX / IFC / result.json"]
 ```
 
-## 工作流程
+## 核心目录
 
-```mermaid
-sequenceDiagram
-    participant User as 用户
-    participant Web as Web 交互端
-    participant Agent as Nexus 编排引擎
-    participant VM as Vectorworks 宿主
-    
-    User->>Web: 输入自然语言需求
-    Web->>Web: 槽位识别与引导追问
-    Web->>Agent: 交付结构化需求
-    Agent->>VM: 执行环境能力扫描 (Capability Scan)
-    VM-->>Agent: 返回构件样式清单 (Styles/Symbols)
-    Agent->>Agent: Architect 生成空间逻辑
-    Agent->>Agent: Constructor 在契约约束下合成脚本
-    Agent->>Web: 写入 Transit-Payload (Handoff)
-    Web->>VM: 触发物理构筑任务
-    VM->>User: 完成建模并导出 IFC
+```text
+app/api/chat/                         # Nexus 编排入口、需求判断、流式响应
+app/api/bim/forge-architect-visionary # ForgeVision-Form 图片解析 API
+app/api/bim/forge-architect-runner    # Vectorworks Web Palette 查询 pending payload
+app/api/bim/forge-architect-result    # 前端轮询 VM result.json
+components/chat-panel.tsx             # 聊天、语音、图片上传、ForgeVision 自动提交
+components/chat-message-display.tsx   # Nexus 状态卡片、ForgeVision 卡片、结果展示
+forge_core/layout_agent/              # ForgeVision-Form Python 适配层
+forge_core/build_agent/               # Nexus 编排、Transit-Payload、VM 执行
+forge_core/design_agent/muti_agent_prompt/ # Architect / Constructor 基础提示词
+vectorworks_plugin/                   # Vectorworks Web Palette 与 VLB 桥接
+forge_runtime/handoffs/               # 本地运行时 payload / pending / result 文件
 ```
-
-## ForgeVision 视觉输入链路
-
-ForgeVision 是 openBIMForge 中面向草图 / 图片输入的实验性视觉链路（Experimental Pathway），用于将建筑草图解析为结构化视觉语义，并进一步转换为 Visual BIM-JSON，作为后续生成链路的补充输入。
-
-**主要功能与特性：**
-- **语义解析**：识别建筑类型（如住宅、办公）、体块关系（L型、U型、悬挑等）及立面构件。
-- **元素提取**：从草图线条中提取门、窗、阳台及遮阳板等立面元素的相对位置。
-- **材料推断**：解析草图中的材质阴影与纹理（如石材、木材、混凝土线索）。
-- **参数对齐**：支持将视觉识别结果与文本槽位（Slots）自动合并，降低用户重复输入成本。
-- **原型定位**：目前作为 openBIMForge 的重要概念原型（Prototype），用于探索 Image-to-BIM 领域的技术边界。
 
 ## 技术栈
 
-- **Frontend**: Next.js 15, Vercel AI SDK, Tailwind CSS, Lucide React, Framer Motion
-- **Backend / Runtime**: Python 3.11, OpenAI SDK, Langfuse (Tracing & Observability)
-- **LLM / Agent**: GPT-4o, Claude 3.5, Gemini 1.5, Qwen (via Ollama)
-- **BIM Runtime**: Vectorworks 2024+, VectorScript (Python SDK)
-- **Data Protocol**: Transit-Payload (JSON), Unified BIM-JSON 1.0
-- **Tooling**: Biome (Linting), Docker, Cloudflare OpenNext
+- **Frontend**：Next.js, React, Vercel AI SDK, Tailwind CSS
+- **Backend**：Next.js Route Handlers, Node.js, Python Bridge
+- **Agent Runtime**：Python, OpenAI-compatible SDK, 多模型路由
+- **Vision Pipeline**：ForgeVision-Form, GenCAD-compatible adapter, STL / CAD vector
+- **BIM Runtime**：Vectorworks 2024+, Vectorworks Python SDK
+- **Protocol**：Transit-Payload JSON, `.pending.json`, `.result.json`
 
-## 目录结构
+## 快速启动
 
-```text
-openBIMForge/
-├── app/                  # Next.js 路由与 API 实现
-├── components/           # 前端 UI 组件库
-├── forge_core/           # 核心 Agent 编排逻辑 (Python)
-│   ├── build_agent/      # 物理构筑 Agent (Constructor)
-│   ├── design_agent/     # 建筑规划 Agent (Architect)
-│   └── layout_agent/     # 布局生成 Agent
-├── forge_runtime/        # 运行时目录 (handoffs, logs, state)
-├── lib/                  # 共享库 (BIM 逻辑, 澄清环等)
-├── tool_agent/           # BIM 工具集封装
-├── vectorworks_plugin/   # Vectorworks 侧插件实现
-├── requirements.txt      # Python 环境依赖
-└── package.json          # Node.js 环境依赖
+```bash
+npm install
+npm run dev
 ```
 
-## 快速开始
+图片链路需要配置 ForgeVision-Form 外部引擎：
 
-### Development Setup
-
-1. **环境准备**：
-   - 安装 Node.js 20+ 与 Python 3.11+。
-   - 确保已安装 Vectorworks 2024 或更高版本。
-
-2. **安装依赖**：
-   ```bash
-   npm install
-   pip install -r requirements.txt
-   ```
-
-3. **配置环境变量**：
-   复制 `.env.example` 为 `.env.local`，填入您的 OpenAI/Claude API Key。
-
-4. **启动前端服务**：
-   ```bash
-   npm run dev
-   ```
-
-5. **启动后端 Bridge**：
-   后端逻辑由前端通过 `child_process` 自动调用，但需确保本地 Python 命令在环境变量中或在 `.env.local` 中配置 `OPENBIMFORGE_PYTHON_COMMAND`。
-
-6. **Vectorworks 集成**：
-   将 `vectorworks_plugin` 中的插件安装至 Vectorworks User Folder，并启动 Web Palette 监听任务载荷。
-
-## 示例 Payload (Unified BIM-JSON)
-
-```json
-{
-  "schema_version": "Nexus-BIM-JSON 1.0",
-  "semantic_slots": {
-    "building_type": "Office",
-    "storey_count": 3,
-    "target_area_m2": 500,
-    "floor_height_m": 4.0
-  },
-  "generation": {
-    "status": "draft",
-    "mode": "live",
-    "handoff_path": "forge_runtime/handoffs/nexus_payload_20240506.json"
-  },
-  "execution_config": {
-    "executionMode": "vectorworks"
-  }
-}
+```env
+OPENBIMFORGE_LAYOUT_ENGINE_ROOT=...
+OPENBIMFORGE_LAYOUT_ENTRYPOINT=...
+OPENBIMFORGE_LAYOUT_PYTHON=...
 ```
 
-## 当前状态
+Vectorworks 物理执行需要安装并打开 `vectorworks_plugin` 中的 Web Palette / VLB 插件。
 
-| 模块 | 状态 | 说明 |
-| :--- | :--- | :--- |
-| **Text-to-BIM 主链路** | Prototype | 已打通从需求到 Vectorworks 的全链路构筑 |
-| **Clarification Loop** | Prototype | 支持 4 大核心维度的槽位识别与追问 |
-| **Tool Contract** | Prototype | 支持墙、门、窗、楼板样式的实时能力扫描 |
-| **Vectorworks Runtime** | Prototype | 稳定支持 15+ 种 BIM 实体的生成接口 |
-| **ForgeVision** | Experimental | 视觉语义解析入口已建立，待深度联动 |
-| **多模型动态路由** | Prototype | 支持主流商用模型与本地 Ollama 模型切换 |
+## 推荐验证流程
 
-## Roadmap
+1. 输入一段纯文字建筑需求，确认 Nexus Stage 1/2/3/4 正常推进。
+2. 上传简单体量图片，确认 ForgeVision-Form 返回 preview / STL / CAD vector。
+3. 上传复杂退台图片，确认触发 CAD-First。
+4. 打开 Vectorworks Web Palette，确认 pending payload 被 VM 拉取执行。
+5. 检查 `forge_runtime/handoffs` 中 pending 文件被真实 `.result.json` 替换。
 
-1. **Vision-BIM 深度联动**：完善 ForgeVision 视觉语义到 BIM 构件属性的细粒度自动映射。
-2. **构件库扩充**：增强 Tool Contract 覆盖范围，支持更复杂的幕墙系统与暖通构件。
-3. **自愈能力增强**：完善自我修正闭环（Fixing Loop）的错误分类库，支持更复杂的几何逻辑修复。
-4. **多端适配**：扩展对 Revit (pyRevit) 及 BlenderBIM 的适配器支持。
+## 详细文档
 
-## License
+- [openBIMForge Nexus 全链路说明](docs/openBIMForge%20Nexus%20全链路说明.md)
+- [openBIMForge 文档清理计划](docs/openBIMForge%20文档清理计划.md)
+- [Vectorworks 插件安装说明](docs/VECTORWORKS_PLUGIN_INSTALL.md)
+- [全链路测试说明](docs/FULL_CHAIN_TEST.md)
 
-License TBD. (Apache-2.0 Recommended)
+## 项目定位
+
+openBIMForge 不是简单的“文本生成脚本”Demo，而是一个围绕 BIM 真实生产环境设计的多阶段 Agent 系统。它的核心价值在于：
+
+- 将 LLM 生成能力约束到可执行 BIM 工程流程中
+- 将 Web 交互与 Vectorworks 宿主环境解耦
+- 将图片、CAD 矢量和建筑语义统一注入模型生成链路
+- 为 Text-to-BIM、Image-to-BIM、CAD-to-BIM 的融合提供可运行原型
+
+该项目适合用于展示 AI Agent、BIM 自动化、建筑生成设计、多模态交互和工程软件集成能力。

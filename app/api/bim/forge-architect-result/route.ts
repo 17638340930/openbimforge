@@ -35,8 +35,37 @@ async function readJsonFile(filePath: string): Promise<Record<string, unknown> |
     }
 }
 
+function normalizeWindowsResultPath(rawPath: string): string {
+    let normalized = rawPath.trim().replace(/^["']|["']$/g, "")
+    try {
+        normalized = decodeURIComponent(normalized)
+    } catch {
+        // URLSearchParams normally decodes the value already.
+    }
+    return normalized.replace(/\\\\/g, "\\")
+}
+
+async function resolveResultPath(requestedPath: string): Promise<string> {
+    const normalizedPath = normalizeWindowsResultPath(requestedPath)
+    if (await fileExists(normalizedPath)) return normalizedPath
+
+    const payloadPath = normalizedPath.replace(/\.result\.json$/i, ".json")
+    const payload = await readJsonFile(payloadPath)
+    const executionConfig = payload?.execution_config as Record<string, unknown> | undefined
+    const payloadResultPath = executionConfig?.resultPath
+    if (typeof payloadResultPath === "string" && payloadResultPath.trim()) {
+        const resolvedPayloadResultPath = normalizeWindowsResultPath(payloadResultPath)
+        if (isAllowedPath(resolvedPayloadResultPath)) {
+            return resolvedPayloadResultPath
+        }
+    }
+
+    return normalizedPath
+}
+
 async function logVmWaitState(resultPath: string, errorMessage: string) {
     const payloadPath = resultPath.replace(/\.result\.json$/i, ".json")
+    const pendingPath = `${resultPath}.pending.json`
     const handoffRoot = path.dirname(resultPath)
     const bridgeStatusPath = path.join(handoffRoot, "openbimforge_legacy_bridge_status.json")
     const bridgeStatus = await readJsonFile(bridgeStatusPath)
@@ -45,6 +74,7 @@ async function logVmWaitState(resultPath: string, errorMessage: string) {
         running: await fileExists(`${payloadPath}.running`),
         done: await fileExists(`${payloadPath}.done`),
         failed: await fileExists(`${payloadPath}.failed`),
+        pending: await fileExists(pendingPath),
         bridgeStage: String(bridgeStatus?.stage || "missing"),
         bridgePayloadPath: String(bridgeStatus?.payloadPath || ""),
         bridgeError: String(bridgeStatus?.error || ""),
@@ -62,6 +92,7 @@ async function logVmWaitState(resultPath: string, errorMessage: string) {
             `running=${state.running ? "yes" : "no"}`,
             `done=${state.done ? "yes" : "no"}`,
             `failed=${state.failed ? "yes" : "no"}`,
+            `pending=${state.pending ? "yes" : "no"}`,
             `bridgeStage=${state.bridgeStage}`,
             state.bridgePayloadPath ? `bridgePayload=${path.basename(state.bridgePayloadPath)}` : "bridgePayload=missing",
             state.bridgeError ? `bridgeError=${state.bridgeError}` : "",
@@ -81,7 +112,17 @@ export async function GET(req: Request) {
         )
     }
 
-    if (!isAllowedPath(targetPath)) {
+    const normalizedTargetPath = normalizeWindowsResultPath(targetPath)
+    if (!isAllowedPath(normalizedTargetPath)) {
+        return NextResponse.json(
+            { ok: false, error: "Requested Digital Asset path is outside the allowed Nexus runtime directories." },
+            { status: 403 },
+        )
+    }
+
+    const resultPath = await resolveResultPath(normalizedTargetPath)
+
+    if (!isAllowedPath(resultPath)) {
         return NextResponse.json(
             { ok: false, error: "Requested Digital Asset path is outside the allowed Nexus runtime directories." },
             { status: 403 },
@@ -89,23 +130,26 @@ export async function GET(req: Request) {
     }
 
     try {
-        const content = await fs.readFile(targetPath, "utf-8")
+        const content = await fs.readFile(resultPath, "utf-8")
         return NextResponse.json({
             ok: true,
-            path: targetPath,
+            path: resultPath,
             data: JSON.parse(content),
             note: "Digital BIM Asset successfully retrieved via Nexus-Orchestrator."
         })
     } catch (error) {
         const message =
             error instanceof Error ? error.message : "Digital Asset is not yet synthesized."
-        await logVmWaitState(targetPath, message)
+        const pending = await readJsonFile(`${resultPath}.pending.json`)
+        await logVmWaitState(resultPath, message)
         return NextResponse.json(
             {
                 ok: false,
-                path: targetPath,
+                path: resultPath,
                 pending: true,
-                error: message,
+                state: pending || undefined,
+                error: "Waiting for Vectorworks VM to write the Nexus result file.",
+                detail: message,
             },
             { status: 202 },
         )

@@ -761,6 +761,13 @@ def run_handoff(handoff_path: str) -> dict:
             "next_step": "send fix_request_path or handoff/result paths to the Diagnostic Agent, then run the returned retry Transit-Payload in the Synthesis Workbench.",
         }
 
+    pending_path = Path(f"{result_path}.pending.json")
+    if pending_path.exists():
+        try:
+            pending_path.unlink()
+        except OSError:
+            pass
+
     _save_json(result_path, final)
     final["result_path"] = result_path
     return final

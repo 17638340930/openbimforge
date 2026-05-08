@@ -211,6 +211,9 @@ export async function POST(req: Request) {
             fileName: upload.fileName,
             sessionId,
         })
+        console.log(
+            `[ForgeVision-Form] start | session=${sessionId} | file=${upload.fileName} | bytes=${upload.buffer.byteLength} | path=${imagePath}`,
+        )
         debug.push("Staged visual topology reference.", {
             imagePath,
             sessionId,
@@ -224,9 +227,14 @@ export async function POST(req: Request) {
 
         const stlPaths = Array.isArray(result?.stl_paths) ? result.stl_paths : []
         const previewPaths = Array.isArray(result?.preview_paths) ? result.preview_paths : []
+        const cadVectorPaths = Array.isArray(result?.cad_vector_paths) ? result.cad_vector_paths : []
         const hasStls = stlPaths.length > 0
         const hasPreviews = previewPaths.length > 0
-        
+        const referenceOnly = result?.status === "completed_reference_only" || !hasStls
+        console.log(
+            `[ForgeVision-Form] result | session=${sessionId} | ok=${Boolean(result?.ok)} | status=${result?.status || "unknown"} | stl=${stlPaths.length} | preview=${previewPaths.length} | cadVector=${cadVectorPaths.length} | log=${result?.log_path || "missing"}`,
+        )
+
         let inputKind: ForgeVisionFormResult["forgeVisionConstraints"]["inputKind"] = "unknown"
         if (hasStls) {
             inputKind = "massing_reference"
@@ -239,11 +247,14 @@ export async function POST(req: Request) {
             isReferenceOnly: true,
             massingReferencePath: stlPaths[0],
             visualPreviewPath: previewPaths[0],
+            cadVectorPath: cadVectorPaths[0],
             notes: [
-                "[REFERENCE_ONLY] ForgeVision-Form 结果仅作为建筑外轮廓和体量参考，并非最终可交付的 BIM 模型。",
-                "必须将其转换为逻辑轮廓和体量约束，结合用户需求，生成完整的 Vectorworks Python 语义化脚本。",
-                "绝对不允许伪造未从图片中明确识别的工程信息（如楼层绝对高度、准确的建筑面积数字等）。"
-            ]
+                "[REFERENCE_ONLY] ForgeVision-Form result is only a massing/form reference, not a final BIM deliverable.",
+                referenceOnly
+                    ? "[CRITICAL] No valid STL massing was extracted. Use the uploaded image only as a loose visual reference and rely on the user text for BIM semantics."
+                    : "Use the STL only as a geometric envelope reference; rebuild semantic BIM elements with Vectorworks-native walls, slabs, openings, and storeys.",
+                "Do not invent engineering facts that are not provided by the user, including exact area, absolute height, storey count, structure, or fire-code metrics.",
+            ],
         }
 
         const forgeVisionForm: ForgeVisionFormResult = {
@@ -252,6 +263,7 @@ export async function POST(req: Request) {
             status: result?.status || (result?.ok ? "completed" : "failed"),
             previewPaths,
             stlPaths,
+            cadVectorPaths,
             logPath: result?.log_path,
             forgeVisionConstraints,
             constraints: forgeVisionConstraints,
@@ -266,6 +278,9 @@ export async function POST(req: Request) {
             normalizedVisionary: forgeVisionForm,
         })
     } catch (error) {
+        console.error(
+            `[ForgeVision-Form] failed | error=${error instanceof Error ? error.message : String(error)}`,
+        )
         debug.push("ForgeVision-Form orchestration failed.", {
             error: error instanceof Error ? error.message : String(error),
         })

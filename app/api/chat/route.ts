@@ -78,11 +78,18 @@ function getVerboseWebLogsEnabled(): boolean {
 }
 
 function summarizeExecutionLog(text: string): string | null {
-    const match = text.match(/<execution-log>([\s\S]*?)<\/execution-log>/)
-    if (!match) return null
+    const closedMatch = text.match(/<execution-log>([\s\S]*?)<\/execution-log>/)
+    const openMatch = closedMatch || text.match(/<execution-log>([\s\S]*)$/)
+    if (!openMatch) return null
 
     try {
-        const payload = JSON.parse(match[1])
+        let jsonText = openMatch[1].trim()
+        if (!closedMatch) {
+            const lastBrace = jsonText.lastIndexOf("}")
+            if (lastBrace < 0) return null
+            jsonText = jsonText.slice(0, lastBrace + 1)
+        }
+        const payload = JSON.parse(jsonText)
         const stages = Array.isArray(payload.stages) ? payload.stages : []
         const lastStage = stages.at(-1)
         const stageLabel = lastStage
@@ -141,6 +148,52 @@ function hasNexusConversationContext(conversationText: string): boolean {
 
 function shouldForceNexusSynthesis(userInputText: string, conversationText: string): boolean {
     return isNexusContinuationIntent(userInputText) && hasNexusConversationContext(conversationText)
+}
+
+function hasForgeVisionFormContext(text: string): boolean {
+    return /ForgeVisionConstraints|forgevision-form|cadVectorPath|stlPaths|previewPaths/i.test(text)
+}
+
+function extractForgeVisionComplexityScore(text: string): number {
+    const patterns = [
+        /"complexity_score"\s*:\s*(\d+)/i,
+        /complexity score:\s*(\d+)\s*\/\s*100/i,
+    ]
+    for (const pattern of patterns) {
+        const match = text.match(pattern)
+        if (!match) continue
+        const score = Number(match[1])
+        if (Number.isFinite(score)) return Math.max(0, Math.min(100, Math.round(score)))
+    }
+    return 92
+}
+
+function buildForgeVisionReadinessText(baseText: string, complexityScore: number, language: ClarifyLanguage): string {
+    const modeLine = complexityScore > 10
+        ? language === "en"
+            ? `Readiness score: ${complexityScore}/100. High-precision vector features detected; CAD-First construction workflow is enabled.`
+            : `需求整备完成度：${complexityScore}/100。检测到高精度矢量特征，系统已自动切换至 [CAD-First] 构筑工作流。`
+        : language === "en"
+            ? `Readiness score: ${complexityScore}/100. ForgeVision-Form massing reference is loaded; standard visual-BIM workflow is enabled.`
+            : `需求整备完成度：${complexityScore}/100。ForgeVision-Form 形体参考已载入，系统将进入标准图生 BIM 工作流。`
+    return `${modeLine}\n${baseText}`
+}
+
+function buildForgeVisionSlotSnapshot(text: string): Record<string, string> {
+    const snapshot: Record<string, string> = {}
+    if (/\b(office|办公|写字楼)\b/i.test(text)) snapshot.building_type = "office"
+    else if (/\b(residential|住宅|公寓)\b/i.test(text)) snapshot.building_type = "residential"
+    else snapshot.building_type = "image-guided building"
+
+    const floorMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:层|楼|floors?|storeys?)/i)
+    if (floorMatch) snapshot.storey_count = floorMatch[1]
+
+    const areaMatch = text.match(/(\d+(?:\.\d+)?)\s*(?:㎡|m2|m²|square meters?)/i)
+    if (areaMatch) snapshot.target_area = `${areaMatch[1]} m2`
+
+    const heightMatch = text.match(/(?:层高|floor height|storey height)\s*[:：]?\s*(\d+(?:\.\d+)?)\s*(?:m|米|meters?)/i)
+    snapshot.floor_height = heightMatch ? `${heightMatch[1]} m` : "3.6 m"
+    return snapshot
 }
 
 function buildPlainTextStreamResponse(text: string): Response {
@@ -275,11 +328,16 @@ function createStreamingNexusResponse(params: {
                 })
 
                 let lastProgressPayload = ""
+                let lastProgressSummary = ""
                 const emitProgress = (progress: NexusArchitectProgressSnapshot) => {
                     const block = buildExecutionProgressBlock(progress)
                     if (block === lastProgressPayload) return
                     lastProgressPayload = block
-                    mirrorConsoleBlock("[Nexus-Web-Progress]", block)
+                    const progressSummary = summarizeExecutionLog(block)
+                    if (progressSummary && progressSummary !== lastProgressSummary) {
+                        lastProgressSummary = progressSummary
+                        mirrorConsoleBlock("[Nexus-Web-Progress]", block)
+                    }
                     writer.write({
                         type: "text-delta",
                         id: textId,
@@ -382,11 +440,27 @@ async function handleChatRequest(req: Request): Promise<Response> {
         const clarifyLanguage = (req.headers.get("x-clarify-language") as ClarifyLanguage) || "zh"
         bimClarifyLanguage = clarifyLanguage
         const conversationUserText = getConversationUserText(messages)
+        const forgeVisionContextDetected = hasForgeVisionFormContext(conversationUserText || userInputText)
+        if (forgeVisionContextDetected) {
+            const forgeVisionText = conversationUserText || userInputText
+            const visionSnapshot = buildForgeVisionSlotSnapshot(forgeVisionText)
+            const forgeVisionComplexityScore = extractForgeVisionComplexityScore(forgeVisionText)
+            bimRouteSuggestion = "nexus-synthesis"
+            bimStatusText = buildForgeVisionReadinessText(
+                buildReadinessStatusText(clarifyLanguage, forgeVisionComplexityScore, "nexus-synthesis", visionSnapshot),
+                forgeVisionComplexityScore,
+                clarifyLanguage,
+            )
+            console.log("[Nexus-Route] ForgeVision-Form context detected. Skipping clarification and routing to nexus-synthesis.")
+        }
         const clarificationDecision = evaluateClarificationNeed(conversationUserText || userInputText)
         const ruleSnapshot = clarificationDecision.slotSnapshot
         const passScore = Number(req.headers.get("x-clarify-pass-score") || 85)
 
         try {
+            if (forgeVisionContextDetected) {
+                throw new Error("__OPENBIMFORGE_SKIP_CLARIFICATION__")
+            }
             const clarifyOverrides = buildClarificationOverrides(req, clientOverrides)
             const { model: clarificationModel, providerOptions: clarificationProviderOptions, headers: clarificationHeaders } = getAIModel(clarifyOverrides)
 
@@ -452,6 +526,9 @@ async function handleChatRequest(req: Request): Promise<Response> {
             }
             console.log(`  └─ → READY, routing to ${bimRouteSuggestion}`)
         } catch (err) {
+            if (err instanceof Error && err.message === "__OPENBIMFORGE_SKIP_CLARIFICATION__") {
+                // Route was already resolved from the ForgeVision-Form context above.
+            } else {
             console.warn("[Clarification Loop] Fallback triggered", err)
             if (shouldForceNexusSynthesis(userInputText, conversationUserText || userInputText) || !clarificationDecision.shouldClarify) {
                 bimRouteSuggestion = "nexus-synthesis"
@@ -461,6 +538,7 @@ async function handleChatRequest(req: Request): Promise<Response> {
                 const fallbackText = buildFallbackClarificationText(clarificationDecision.missingRequiredSlots, clarifyLanguage, ruleSnapshot)
                 mirrorConsoleBlock("[Nexus-Web-Clarify]", fallbackText)
                 return buildPlainTextStreamResponse(fallbackText)
+            }
             }
         }
     } else {
@@ -475,7 +553,7 @@ async function handleChatRequest(req: Request): Promise<Response> {
         const nexusExecutionMode = (process.env.OPENBIMFORGE_DEFAULT_EXECUTION_MODE || process.env.TEXT2BIM_DEFAULT_EXECUTION_MODE) === "vectorworks" ? "vectorworks" : "dry-run"
         console.log(`[Nexus-Route] Execution mode: ${nexusExecutionMode}`)
         return createStreamingNexusResponse({
-            bimStatusText,
+            bimStatusText: bimStatusText || "",
             language: bimClarifyLanguage,
             run: (emitProgress) => runNexusArchitectAdapter({
                 query: userInputText,

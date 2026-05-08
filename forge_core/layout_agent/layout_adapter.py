@@ -122,9 +122,11 @@ def build_inference_command(config: LayoutRuntimeConfig, input_dir: Path) -> lis
 def index_outputs(input_dir: Path, output_dir: Path) -> dict[str, list[str]]:
     stl_paths = _copy_matching(input_dir / "stls", output_dir, "*.stl")
     preview_paths = _copy_matching(input_dir / "generated_images", output_dir, "*.png")
+    cad_vector_paths = _copy_matching(input_dir / "cad_vectors", output_dir, "*.json")
     return {
         "stl_paths": [str(path) for path in stl_paths],
         "preview_paths": [str(path) for path in preview_paths],
+        "cad_vector_paths": [str(path) for path in cad_vector_paths],
     }
 
 

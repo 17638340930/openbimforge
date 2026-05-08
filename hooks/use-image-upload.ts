@@ -81,7 +81,7 @@ export function useImageUpload() {
                 setError(message)
                 return { ok: false, error: message, result: data?.result }
             }
-            return { ok: true, result: data.result }
+            return { ok: true, result: data }
         } catch (err) {
             const message = err instanceof Error ? err.message : "Layout Agent 请求失败。"
             setError(message)

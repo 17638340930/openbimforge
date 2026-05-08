@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -261,8 +261,8 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         )
     }
 
-    const handleForgeVisionFormContinue = () => {
-        if (!forgeVisionForm) return
+    const submitForgeVisionFormToNexus = (form: ForgeVisionFormResult) => {
+        if (!form) return
 
         const config = getSelectedAIConfig()
         const clarify = getActiveClarifyConfig()
@@ -273,7 +273,7 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
             return
         }
 
-        const forgeVisionData = JSON.stringify(forgeVisionForm, null, 2)
+        const forgeVisionData = JSON.stringify(form, null, 2)
         const text = `[ForgeVision-Form 几何约束已载入]
 
 【ForgeVisionConstraints】
@@ -282,10 +282,12 @@ ${forgeVisionData}
 【用户补充需求】
 ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
 
-约束声明：
-- [REFERENCE_ONLY] STL / preview 不是最终 BIM，只能作为建筑外轮廓、体量和构图参考。
-- 请 Nexus 根据上述形体拓扑，使用 Vectorworks 原生组件（墙、板、窗、楼层等）进行语义化 BIM 重构。
-- 不要伪造面积、楼层、高度等未从用户需求或图片结果中明确给出的工程数值。`
+Constraint policy:
+- [REFERENCE_ONLY] STL / preview are not final BIM deliverables; use them only as building envelope, massing, and composition references.
+- If cadVectorPath is provided, use it to understand the precise CAD topology sequence, but rebuild all BIM elements semantically instead of copying raw geometry.
+- If [CRITICAL] appears in notes, no valid STL was extracted; treat the uploaded image only as a loose visual reference and rely on the user text for BIM semantics.
+- Nexus must rebuild the model with Vectorworks-native components: walls, slabs, openings, storeys, roofs, and spaces.
+- Do not invent engineering values that are not explicitly provided, including exact area, storey count, absolute height, structural system, or fire-code metrics.`
         
         setInput("")
         setForgeVisionForm(null)
@@ -320,6 +322,14 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
                 },
             },
         )
+        console.log(
+            `[ForgeVision-Form] nexus-submit | session=${sessionId} | status=${form.status} | stl=${form.stlPaths.length} | preview=${form.previewPaths.length} | cadVector=${form.cadVectorPaths?.length || 0}`,
+        )
+    }
+
+    const handleForgeVisionFormContinue = () => {
+        if (!forgeVisionForm) return
+        submitForgeVisionFormToNexus(forgeVisionForm)
     }
 
     const sendToLayoutAgent = async () => {
@@ -338,17 +348,17 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
             stages: [
                 {
                     id: "layout_upload",
-                    label: "Topology Input (图片上传)",
+                    label: "拓扑输入（图片上传）",
                     status: "completed",
-                    detail: attachment?.file.name || "Visual topology uploaded.",
+                    detail: attachment?.file.name || "视觉拓扑已上传。",
                 },
                 {
                     id: "layout_agent",
-                    label: "ForgeVision-Form (形体转化)",
+                    label: "ForgeVision-Form（形体转化）",
                     status: result.ok ? "completed" : "failed",
                     detail: result.ok
-                        ? "ForgeVision-Form returned massing reference outputs."
-                        : result.error || "ForgeVision-Form interpretation failed.",
+                        ? "ForgeVision-Form 已返回形体参考产物。"
+                        : result.error || "ForgeVision-Form 解析失败。",
                 },
             ],
             logs: [
@@ -357,7 +367,7 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
             ].filter(Boolean),
             summary: result.ok
                 ? "图片形体参考已交付至 ForgeVision-Form，可继续进入 Nexus BIM 生成。"
-                : `ForgeVision-Form 转化中断：${result.error || "请检查后端日志。"}`,
+                : `ForgeVision-Form 转化失败：${result.error || "请检查后端日志"}`,
             result,
         }
 
@@ -381,9 +391,16 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
             const nextForgeVisionForm = resultRecord.forgeVisionForm || resultRecord.normalizedVisionary
             if (nextForgeVisionForm) {
                 const form = nextForgeVisionForm as ForgeVisionFormResult
-                if (form.stlPaths.length > 0 || form.previewPaths.length > 0) {
+                if (
+                    form.stlPaths.length > 0 ||
+                    form.previewPaths.length > 0 ||
+                    (form.cadVectorPaths?.length || 0) > 0
+                ) {
                     setForgeVisionForm(form)
+                    submitForgeVisionFormToNexus(form)
                 }
+            } else {
+                console.warn("[ForgeVision-Form] missing forgeVisionForm in API response", resultRecord)
             }
         } else if (result.error) {
             toast.error(result.error)
@@ -397,10 +414,10 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
     const voiceButtonTitle = isVectorworksHost
         ? "Vectorworks Web Palette 不开放麦克风权限，请在浏览器版使用语音"
         : !isVoiceSupported
-        ? "当前环境不支持语义听写"
+        ? "当前环境不支持语音输入"
         : isListening
-            ? "停止听写"
-            : "开启语义听写"
+            ? "停止语音输入"
+            : "开始语音输入"
 
     return (
         <div className="flex h-full flex-col overflow-hidden rounded-[2rem] border border-zinc-200/70 bg-gradient-to-br from-white via-zinc-50 to-sky-50 shadow-2xl">
@@ -408,7 +425,7 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
             <header className="flex items-center justify-end border-b border-zinc-200/70 bg-white/80 px-5 py-3 backdrop-blur-xl">
                 <div className="flex items-center gap-2">
                     <ButtonWithTooltip
-                        tooltipContent="开启新协同会话"
+                        tooltipContent="开启新的 Nexus 会话"
                         variant="ghost"
                         size="icon"
                         onClick={handleNewChat}
@@ -443,14 +460,14 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
                             <p className="text-sm uppercase tracking-[0.3em] text-zinc-500">Nexus-Orchestration Center</p>
                             <h2 className="mt-4 text-3xl font-semibold tracking-tight">从语义需求发起 Constructive Synthesis</h2>
                             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-                                输入建筑类型、楼层、容积等语义参数。Nexus 框架将调度 Architect-Agent 进行逻辑规划、Constructor-Agent 执行物理合成并导出 Digital BIM Assets。
+                                输入建筑类型、楼层、面积、高度，或上传图片形体参考。Nexus 会调度 Architect-Agent 与 Constructor-Agent 生成 BIM 资产。
                             </p>
                             <button
                                 type="button"
                                 onClick={() => setInput("发起一个办公建筑合成任务，6层，总面积4200平方米，典型层高3.6米。")}
                                 className="mt-6 rounded-full bg-zinc-950 px-5 py-2 text-sm text-white hover:bg-zinc-800"
                             >
-                                载入示例语义
+                                载入示例需求
                             </button>
                         </div>
                     ) : (
@@ -475,9 +492,9 @@ ${input.trim() || "请根据上述图片形体约束生成初始 BIM 方案。"}
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium text-zinc-800">{attachment.file.name}</p>
-                                <p className="text-xs text-zinc-500">已就绪，可交付至 Layout-Agent 执行空间转化。</p>
+                                <p className="text-xs text-zinc-500">已就绪，可交付至 ForgeVision-Form 执行形体转化。</p>
                             </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={clearAttachment} title="移除拓扑参考">
+                            <Button type="button" variant="ghost" size="icon" onClick={clearAttachment} title="移除图片参考">
                                 <X className="h-4 w-4" />
                             </Button>
                         </div>

@@ -1,86 +1,33 @@
-# AGENTS.md
+# Documentation Agent Rules
 
-## 项目身份
+Scope: this file applies to all files under `docs/`.
 
-本项目名为 openBIMForge，是用于硕士开题报告和论文研究的生成式 BIM 自动化编排系统原型。
+## Source of truth
 
-开题题目：
+- `docs/nexus_full_pipeline_map.md` is the current authoritative architecture and pipeline document.
+- If code changes touch ForgeVision, Nexus stages, Vectorworks VM execution, payload lifecycle, or agent prompts, update `docs/nexus_full_pipeline_map.md`.
+- Keep `README.md` short. Link to detailed docs instead of duplicating long architecture sections.
 
-《生成式BIM：基于多专家与可切换LLM的协同建模方法与研究》
+## Style
 
-学生：张佳毅  
-导师：王洪泊  
-学校：北京科技大学
+- Write documentation in clear Chinese unless the file is explicitly for English-only external users.
+- Use exact repository-relative or absolute file paths when referencing code.
+- Include line numbers when describing current code behavior.
+- Distinguish clearly between:
+  - implemented
+  - partially implemented
+  - planned
+  - deprecated
 
-## 项目定位
+## Safety
 
-本项目不是普通 Web 产品，也不是单纯代码生成工具。
+- Do not claim a chain is tested unless there is a real test log, generated file, or explicit manual verification.
+- Do not present external Agent/Gemini audit reports as source of truth without checking the code.
+- Do not delete legacy notes unless they are replaced by an indexed document or moved to an archive.
 
-它的研究定位是：
+## Current terminology
 
-面向 BIM 自动化建模中需求不完整、专业幻觉、脚本执行失败和模型底座依赖等问题，构建一种融合意图澄清、多专家协同、Tool Contract 约束和自我修正闭环的生成式 BIM 编排方法。
-
-## 工作原则
-
-1. 所有分析必须基于真实代码、真实文件路径和真实函数。
-2. 不允许把计划中的功能写成已经完成。
-3. 如果功能未实现，必须明确写“当前未发现实现”。
-4. 如果功能部分实现，必须写“部分实现”并说明缺少什么。
-5. 输出内容要服务于硕士开题报告和论文写作。
-6. 中文表达要正式、清晰、学术化，但不能空泛。
-7. 不要把 PPT 写成产品发布会或商业宣传。
-8. 不要随意修改核心代码，除非用户明确要求。
-9. 需要改代码时，先说明影响范围和回滚方式。
-10. 涉及实验数据时，不得编造已经完成的实验结果，只能写“计划验证”或“预期验证”。
-
-## 核心文档
-
-- docs/PROJECT_LEDGER.md：项目总账，记录架构、模块、文件路径、完成度、风险点。
-- docs/ACADEMIC_STYLE_CN.md：中文学术表达规范。
-- docs/PPT_WRITING_RULES.md：开题报告 PPT 写作规则。
-- docs/THESIS_PROPOSAL_OUTLINE.md：开题报告大纲。
-- docs/EXPERIMENT_DESIGN.md：实验设计方案。
-- docs/DEFENSE_QA.md：导师可能追问与回答。
-
-## 每次扫项目时必须更新
-
-每次分析项目后，请检查并更新：
-
-1. PROJECT_LEDGER.md
-2. 当前完成度
-3. 未实现功能
-4. 技术风险
-5. 可用于开题报告的素材
-6. 可用于论文创新点的素材
-7. 文件路径索引
-
-## 开题报告表达主线
-
-始终围绕以下主线组织材料：
-
-本研究面向 BIM 自动化建模中需求不完整、专业幻觉和脚本执行失败等问题，提出一种融合意图澄清、多专家协同、工具契约约束和自我修正闭环的生成式 BIM 编排方法，并以 openBIMForge 原型系统进行验证。
-
-## PPT 输出规则
-
-生成开题报告 PPT 内容时，必须按照：
-
-研究背景 → 国内外现状 → 问题分析 → 研究目标 → 系统架构 → 核心方法 → 实验设计 → 创新点 → 研究计划
-
-不要直接按照代码模块顺序输出。
-
-## 中文风格
-
-中文表达要求：
-
-- 正式
-- 简洁
-- 适合硕士开题报告
-- 不要口语化
-- 不要使用过多营销词
-- 不要堆砌“赋能、生态、闭环、颠覆”等空泛词
-- 每个技术点都要回答“解决什么问题、采用什么方法、如何验证”
-
-## 安全和隐私
-
-不要输出 API Key、手机号、账号、Token、密钥、路径中的敏感信息。
-如发现敏感信息，请提示用户移除。
+- `ForgeVision-Form`: image-to-massing chain; currently implemented.
+- `CAD-First`: high-precision branch inside ForgeVision-Form; currently implemented.
+- `ForgeVision-Layout`: floor-plan / room-topology chain; planned, not fully implemented.
+- `Stage4`: Vectorworks Web Palette / VLB / VM execution layer.
