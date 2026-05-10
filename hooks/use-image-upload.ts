@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { getApiEndpoint } from "@/lib/base-path"
+import type { ForgeVisionMode } from "@/lib/bim/visionary-types"
 
 const DEFAULT_MAX_BYTES = 8 * 1024 * 1024
 const SUPPORTED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"])
@@ -58,7 +59,7 @@ export function useImageUpload() {
         [revokePreview],
     )
 
-    const runLayout = useCallback(async (sessionId?: string): Promise<LayoutUploadResult> => {
+    const runLayout = useCallback(async (sessionId?: string, mode: ForgeVisionMode = "form"): Promise<LayoutUploadResult> => {
         if (!attachment) {
             return { ok: false, error: "请先选择一张图片。" }
         }
@@ -68,6 +69,7 @@ export function useImageUpload() {
         try {
             const formData = new FormData()
             formData.set("image", attachment.file)
+            formData.set("mode", mode)
             if (sessionId) {
                 formData.set("sessionId", sessionId)
             }
@@ -77,13 +79,13 @@ export function useImageUpload() {
             })
             const data = await response.json()
             if (!response.ok || !data?.ok) {
-                const message = data?.error || data?.result?.error || "Layout Agent 处理失败。"
+                const message = data?.error || data?.result?.error || "ForgeVision 解析失败。"
                 setError(message)
                 return { ok: false, error: message, result: data?.result }
             }
             return { ok: true, result: data }
         } catch (err) {
-            const message = err instanceof Error ? err.message : "Layout Agent 请求失败。"
+            const message = err instanceof Error ? err.message : "ForgeVision 请求失败。"
             setError(message)
             return { ok: false, error: message }
         } finally {

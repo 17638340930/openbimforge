@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { History, ImageIcon, MessageSquarePlus, Mic, MicOff, Send, Settings, Square, Wrench, X } from "lucide-react"
+import { History, ImageIcon, LoaderCircle, MessageSquarePlus, Mic, MicOff, Send, Settings, Square, Wrench, X } from "lucide-react"
 import Image from "next/image"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { toast, Toaster } from "sonner"
@@ -20,7 +20,7 @@ import { getSelectedAIConfig, useModelConfig } from "@/hooks/use-model-config"
 import { useVoiceInput } from "@/hooks/use-voice-input"
 import { getApiEndpoint } from "@/lib/base-path"
 import { STORAGE_KEYS } from "@/lib/storage"
-import type { ForgeVisionFormResult } from "@/lib/bim/visionary-types"
+import type { ForgeVisionFormResult, ForgeVisionLayoutResult, ForgeVisionMode } from "@/lib/bim/visionary-types"
 
 interface ChatPanelProps {
     isVisible: boolean
@@ -89,10 +89,22 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
     const [isVectorworksHost, setIsVectorworksHost] = useState(false)
     const [lastResultPath, setLastResultPath] = useState<string | null>(null)
     const [forgeVisionForm, setForgeVisionForm] = useState<ForgeVisionFormResult | null>(null)
+    const [forgeVisionLayout, setForgeVisionLayout] = useState<ForgeVisionLayoutResult | null>(null)
+    const [forgeVisionMode, setForgeVisionMode] = useState<ForgeVisionMode>("form")
     const [bimModeEnabled, setBimModeEnabled] = useState(() => {
         if (typeof window === "undefined") return true
         return localStorage.getItem("openbimforge-bim-mode-enabled") !== "false"
     })
+    const [mepModeEnabled, setMepModeEnabled] = useState<boolean>(false)
+
+    // Hydrate the MEP toggle from localStorage only after mount so the
+    // initial client render matches SSR (prevents the "button says off,
+    // but backend is told on" desync when the browser had a stale value).
+    useEffect(() => {
+        if (typeof window === "undefined") return
+        const raw = localStorage.getItem(STORAGE_KEYS.mepModeEnabled)
+        if (raw === "true") setMepModeEnabled(true)
+    }, [])
     const [clarifyUseSeparateModel, setClarifyUseSeparateModel] = useState(() => {
         if (typeof window === "undefined") return false
         const val = localStorage.getItem(STORAGE_KEYS.clarifyUseSeparateModel)
@@ -153,6 +165,70 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         },
     })
 
+    const buildNexusRequestHeaders = useCallback((): Record<string, string> => {
+        const config = getSelectedAIConfig()
+        const clarify = getActiveClarifyConfig()
+        const p = localStorage.getItem("openbimforge-clarify-provider")
+        const m = localStorage.getItem("openbimforge-clarify-model")
+        const b = localStorage.getItem("openbimforge-clarify-base-url")
+        const k = localStorage.getItem("openbimforge-clarify-api-key")
+
+        // Per-agent model specialisation (optional). The dev panel stores a
+        // JSON blob {provider, modelId, baseUrl, apiKey} per agent key. If
+        // any agent has an override we forward the full map in a single
+        // header so the server can parse once.
+        const agentOverrides: Record<
+            string,
+            { provider?: string; modelId?: string; baseUrl?: string; apiKey?: string }
+        > = {}
+        for (const [agentKey, storageKey] of [
+            ["architect", STORAGE_KEYS.architectAgentOverride],
+            ["constructor", STORAGE_KEYS.constructorAgentOverride],
+            ["checker", STORAGE_KEYS.checkerAgentOverride],
+        ] as const) {
+            const raw = localStorage.getItem(storageKey)
+            if (!raw) continue
+            try {
+                const parsed = JSON.parse(raw)
+                if (parsed && typeof parsed === "object") {
+                    agentOverrides[agentKey] = {
+                        provider: typeof parsed.provider === "string" ? parsed.provider : undefined,
+                        modelId: typeof parsed.modelId === "string" ? parsed.modelId : undefined,
+                        baseUrl: typeof parsed.baseUrl === "string" ? parsed.baseUrl : undefined,
+                        apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : undefined,
+                    }
+                }
+            } catch {
+                // Silently ignore malformed entries; the main model will
+                // be used for that agent.
+            }
+        }
+
+        return {
+            "x-access-code": config.accessCode,
+            "x-ai-provider": config.aiProvider,
+            ...(config.aiBaseUrl && { "x-ai-base-url": config.aiBaseUrl }),
+            ...(config.aiApiKey && { "x-ai-api-key": config.aiApiKey }),
+            "x-ai-model": config.aiModel,
+            ...(config.selectedModelId && { "x-selected-model-id": config.selectedModelId }),
+            ...(config.awsAccessKeyId && { "x-aws-access-key-id": config.awsAccessKeyId }),
+            ...(config.awsSecretAccessKey && { "x-aws-secret-access-key": config.awsSecretAccessKey }),
+            ...(config.awsRegion && { "x-aws-region": config.awsRegion }),
+            ...(config.awsSessionToken && { "x-aws-session-token": config.awsSessionToken }),
+            ...(config.vertexApiKey && { "x-vertex-api-key": config.vertexApiKey }),
+            "x-bim-mode": String(bimModeEnabled),
+            "x-mep-mode": String(mepModeEnabled),
+            "x-clarify-language": clarify.language || "zh",
+            ...(p && { "x-clarify-provider": p }),
+            ...(m && { "x-clarify-model": m }),
+            ...(b && { "x-clarify-base-url": b }),
+            ...(k && { "x-clarify-api-key": k }),
+            ...(Object.keys(agentOverrides).length > 0 && {
+                "x-agent-overrides": JSON.stringify(agentOverrides),
+            }),
+        }
+    }, [bimModeEnabled, mepModeEnabled])
+
     useEffect(() => {
         if (typeof window === "undefined") return
         const params = new URLSearchParams(window.location.search)
@@ -198,6 +274,7 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         setInput("")
         setLastResultPath(null)
         setForgeVisionForm(null)
+        setForgeVisionLayout(null)
         const newSessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
         setSessionId(newSessionId)
         localStorage.setItem("openbimforge-session-id", newSessionId)
@@ -207,6 +284,10 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.bimModeEnabled, String(bimModeEnabled))
     }, [bimModeEnabled])
+
+    useEffect(() => {
+        localStorage.setItem(STORAGE_KEYS.mepModeEnabled, String(mepModeEnabled))
+    }, [mepModeEnabled])
 
     useEffect(() => {
         localStorage.setItem(
@@ -220,7 +301,6 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         if (!text || status === "submitted" || status === "streaming") return
 
         const config = getSelectedAIConfig()
-        const clarify = getActiveClarifyConfig()
 
         if (!config.aiProvider || !config.aiModel) {
             toast.error("请先在模型设置中选择 Nexus 主生成模型")
@@ -229,34 +309,12 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         }
 
         setInput("")
-        const p = localStorage.getItem("openbimforge-clarify-provider")
-        const m = localStorage.getItem("openbimforge-clarify-model")
-        const b = localStorage.getItem("openbimforge-clarify-base-url")
-        const k = localStorage.getItem("openbimforge-clarify-api-key")
 
         sendMessage(
             { parts: [{ type: "text", text }] },
             {
                 body: { sessionId },
-                headers: {
-                    "x-access-code": config.accessCode,
-                    "x-ai-provider": config.aiProvider,
-                    ...(config.aiBaseUrl && { "x-ai-base-url": config.aiBaseUrl }),
-                    ...(config.aiApiKey && { "x-ai-api-key": config.aiApiKey }),
-                    "x-ai-model": config.aiModel,
-                    ...(config.selectedModelId && { "x-selected-model-id": config.selectedModelId }),
-                    ...(config.awsAccessKeyId && { "x-aws-access-key-id": config.awsAccessKeyId }),
-                    ...(config.awsSecretAccessKey && { "x-aws-secret-access-key": config.awsSecretAccessKey }),
-                    ...(config.awsRegion && { "x-aws-region": config.awsRegion }),
-                    ...(config.awsSessionToken && { "x-aws-session-token": config.awsSessionToken }),
-                    ...(config.vertexApiKey && { "x-vertex-api-key": config.vertexApiKey }),
-                    "x-bim-mode": String(bimModeEnabled),
-                    "x-clarify-language": clarify.language || "zh",
-                    ...(p && { "x-clarify-provider": p }),
-                    ...(m && { "x-clarify-model": m }),
-                    ...(b && { "x-clarify-base-url": b }),
-                    ...(k && { "x-clarify-api-key": k }),
-                },
+                headers: buildNexusRequestHeaders(),
             },
         )
     }
@@ -265,7 +323,6 @@ export default function ChatPanel({ isVisible }: ChatPanelProps) {
         if (!form) return
 
         const config = getSelectedAIConfig()
-        const clarify = getActiveClarifyConfig()
 
         if (!config.aiProvider || !config.aiModel) {
             toast.error("请先在模型设置中选择 Nexus 主生成模型")
@@ -288,38 +345,15 @@ Constraint policy:
 - If [CRITICAL] appears in notes, no valid STL was extracted; treat the uploaded image only as a loose visual reference and rely on the user text for BIM semantics.
 - Nexus must rebuild the model with Vectorworks-native components: walls, slabs, openings, storeys, roofs, and spaces.
 - Do not invent engineering values that are not explicitly provided, including exact area, storey count, absolute height, structural system, or fire-code metrics.`
-        
+
         setInput("")
         setForgeVisionForm(null)
-        
-        const p = localStorage.getItem("openbimforge-clarify-provider")
-        const m = localStorage.getItem("openbimforge-clarify-model")
-        const b = localStorage.getItem("openbimforge-clarify-base-url")
-        const k = localStorage.getItem("openbimforge-clarify-api-key")
 
         sendMessage(
             { parts: [{ type: "text", text }] },
             {
                 body: { sessionId },
-                headers: {
-                    "x-access-code": config.accessCode,
-                    "x-ai-provider": config.aiProvider,
-                    ...(config.aiBaseUrl && { "x-ai-base-url": config.aiBaseUrl }),
-                    ...(config.aiApiKey && { "x-ai-api-key": config.aiApiKey }),
-                    "x-ai-model": config.aiModel,
-                    ...(config.selectedModelId && { "x-selected-model-id": config.selectedModelId }),
-                    ...(config.awsAccessKeyId && { "x-aws-access-key-id": config.awsAccessKeyId }),
-                    ...(config.awsSecretAccessKey && { "x-aws-secret-access-key": config.awsSecretAccessKey }),
-                    ...(config.awsRegion && { "x-aws-region": config.awsRegion }),
-                    ...(config.awsSessionToken && { "x-aws-session-token": config.awsSessionToken }),
-                    ...(config.vertexApiKey && { "x-vertex-api-key": config.vertexApiKey }),
-                    "x-bim-mode": String(bimModeEnabled),
-                    "x-clarify-language": clarify.language || "zh",
-                    ...(p && { "x-clarify-provider": p }),
-                    ...(m && { "x-clarify-model": m }),
-                    ...(b && { "x-clarify-base-url": b }),
-                    ...(k && { "x-clarify-api-key": k }),
-                },
+                headers: buildNexusRequestHeaders(),
             },
         )
         console.log(
@@ -332,9 +366,69 @@ Constraint policy:
         submitForgeVisionFormToNexus(forgeVisionForm)
     }
 
+    const submitForgeVisionLayoutToNexus = (layout: ForgeVisionLayoutResult) => {
+        if (!layout) return
+
+        const config = getSelectedAIConfig()
+
+        if (!config.aiProvider || !config.aiModel) {
+            toast.error("请先在模型设置中选择 Nexus 主生成模型")
+            setShowModelConfigDialog(true)
+            return
+        }
+
+        const layoutData = JSON.stringify(layout, null, 2)
+        const text = `[ForgeVision-Layout 空间拓扑约束已载入]
+
+【ForgeVisionLayoutConstraints】
+${layoutData}
+
+【用户补充需求】
+${input.trim() || "请根据上述空间拓扑约束生成初始 BIM 方案。"}
+
+Constraint policy:
+- [REFERENCE_ONLY] Layout topology is only a schematic floor-plan reference.
+- Rebuild semantic BIM with Vectorworks-native spaces, walls, slabs, doors, windows, corridors, and core elements.
+- Preserve room adjacency and central circulation intent where possible.
+- Do not invent exact code/fire metrics unless the user provided them.`
+
+        setInput("")
+        setForgeVisionLayout(null)
+
+        sendMessage(
+            { parts: [{ type: "text", text }] },
+            {
+                body: { sessionId },
+                headers: buildNexusRequestHeaders(),
+            },
+        )
+        console.log(
+            `[ForgeVision-Layout] nexus-submit | session=${sessionId} | status=${layout.status} | rooms=${layout.forgeVisionLayoutConstraints.rooms.length} | preview=${layout.previewPaths.length}`,
+        )
+    }
+
+    const handleForgeVisionLayoutContinue = () => {
+        if (!forgeVisionLayout) return
+        submitForgeVisionLayoutToNexus(forgeVisionLayout)
+    }
+
+    const [isLayoutSubmitting, setIsLayoutSubmitting] = useState(false)
+
     const sendToLayoutAgent = async () => {
-        const result = await runLayout(sessionId)
-        const resultRecord = (result.result || {}) as Record<string, any>
+        // Guard against double-clicks: runLayout hits the Python bridge and
+        // takes 30-60s; without this the user can fire N duplicate uploads.
+        if (isLayoutSubmitting) return
+        setIsLayoutSubmitting(true)
+        const modeLabelZh = forgeVisionMode === "layout"
+            ? "ForgeVision-Layout 空间拓扑"
+            : "ForgeVision-Form 形体转化"
+        const pendingToastId = toast.loading(`正在交付给 ${modeLabelZh}，请稍候...`)
+        try {
+            const result = await runLayout(sessionId, forgeVisionMode)
+            toast.dismiss(pendingToastId)
+            const resultRecord = (result.result || {}) as Record<string, any>
+            const isLayoutMode = forgeVisionMode === "layout"
+            const modeLabel = isLayoutMode ? "ForgeVision-Layout" : "ForgeVision-Form"
         const debugEvents = Array.isArray(resultRecord.debug?.events)
             ? resultRecord.debug.events.map((event: any) =>
                   `${event.at || ""} ${event.message || ""}`.trim(),
@@ -342,9 +436,9 @@ Constraint policy:
             : []
         const layoutResult = (resultRecord.result || resultRecord) as Record<string, any>
         const payload = {
-            title: "ForgeVision-Form Result",
+            title: `${modeLabel} Result`,
             status: result.ok ? "success" : "failed",
-            mode: "ForgeVision-Form",
+            mode: modeLabel,
             stages: [
                 {
                     id: "layout_upload",
@@ -354,11 +448,13 @@ Constraint policy:
                 },
                 {
                     id: "layout_agent",
-                    label: "ForgeVision-Form（形体转化）",
+                    label: isLayoutMode ? "ForgeVision-Layout（空间拓扑）" : "ForgeVision-Form（形体转化）",
                     status: result.ok ? "completed" : "failed",
                     detail: result.ok
-                        ? "ForgeVision-Form 已返回形体参考产物。"
-                        : result.error || "ForgeVision-Form 解析失败。",
+                        ? isLayoutMode
+                            ? "ForgeVision-Layout 已返回空间拓扑参考。"
+                            : "ForgeVision-Form 已返回形体参考产物。"
+                        : result.error || `${modeLabel} 解析失败。`,
                 },
             ],
             logs: [
@@ -366,8 +462,10 @@ Constraint policy:
                 layoutResult?.log_path ? `Topology log: ${layoutResult.log_path}` : "",
             ].filter(Boolean),
             summary: result.ok
-                ? "图片形体参考已交付至 ForgeVision-Form，可继续进入 Nexus BIM 生成。"
-                : `ForgeVision-Form 转化失败：${result.error || "请检查后端日志"}`,
+                ? isLayoutMode
+                    ? "图片空间拓扑已交付至 ForgeVision-Layout，可继续进入 Nexus BIM 生成。"
+                    : "图片形体参考已交付至 ForgeVision-Form，可继续进入 Nexus BIM 生成。"
+                : `${modeLabel} 转化失败：${result.error || "请检查后端日志"}`,
             result,
         }
 
@@ -386,24 +484,45 @@ Constraint policy:
         ])
 
         if (result.ok) {
-            toast.success("ForgeVision-Form 转化完成")
+            toast.success(`${modeLabel} 转化完成`)
             clearAttachment()
-            const nextForgeVisionForm = resultRecord.forgeVisionForm || resultRecord.normalizedVisionary
-            if (nextForgeVisionForm) {
-                const form = nextForgeVisionForm as ForgeVisionFormResult
-                if (
-                    form.stlPaths.length > 0 ||
-                    form.previewPaths.length > 0 ||
-                    (form.cadVectorPaths?.length || 0) > 0
-                ) {
-                    setForgeVisionForm(form)
-                    submitForgeVisionFormToNexus(form)
+            if (isLayoutMode) {
+                const nextForgeVisionLayout = resultRecord.forgeVisionLayout || resultRecord.normalizedVisionary
+                if (nextForgeVisionLayout) {
+                    const layout = nextForgeVisionLayout as ForgeVisionLayoutResult
+                    if (layout.previewPaths.length > 0 || layout.forgeVisionLayoutConstraints.rooms.length > 0) {
+                        setForgeVisionLayout(layout)
+                        submitForgeVisionLayoutToNexus(layout)
+                    }
+                } else {
+                    console.warn("[ForgeVision-Layout] missing forgeVisionLayout in API response", resultRecord)
                 }
             } else {
-                console.warn("[ForgeVision-Form] missing forgeVisionForm in API response", resultRecord)
+                const nextForgeVisionForm = resultRecord.forgeVisionForm || resultRecord.normalizedVisionary
+                if (nextForgeVisionForm) {
+                    const form = nextForgeVisionForm as ForgeVisionFormResult
+                    if (
+                        form.stlPaths.length > 0 ||
+                        form.previewPaths.length > 0 ||
+                        (form.cadVectorPaths?.length || 0) > 0
+                    ) {
+                        setForgeVisionForm(form)
+                        submitForgeVisionFormToNexus(form)
+                    }
+                } else {
+                    console.warn("[ForgeVision-Form] missing forgeVisionForm in API response", resultRecord)
+                }
             }
         } else if (result.error) {
             toast.error(result.error)
+        }
+        } catch (err) {
+            toast.dismiss(pendingToastId)
+            toast.error(
+                err instanceof Error ? err.message : `${modeLabelZh} 交付失败，请查看终端日志`,
+            )
+        } finally {
+            setIsLayoutSubmitting(false)
         }
     }
 
@@ -492,7 +611,9 @@ Constraint policy:
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium text-zinc-800">{attachment.file.name}</p>
-                                <p className="text-xs text-zinc-500">已就绪，可交付至 ForgeVision-Form 执行形体转化。</p>
+                                <p className="text-xs text-zinc-500">
+                                    已就绪，将交付至 {forgeVisionMode === "layout" ? "ForgeVision-Layout 空间拓扑" : "ForgeVision-Form 形体转化"}。
+                                </p>
                             </div>
                             <Button type="button" variant="ghost" size="icon" onClick={clearAttachment} title="移除图片参考">
                                 <X className="h-4 w-4" />
@@ -525,7 +646,7 @@ Constraint policy:
                         <div className="input-toolbar">
                             <div className="input-toolbar-left">
                                 <ButtonWithTooltip
-                                    tooltipContent="上传图片作为 ForgeVision-Form 形体参考"
+                                    tooltipContent="上传图片作为 ForgeVision 参考"
                                     type="button"
                                     variant="ghost"
                                     size="sm"
@@ -534,6 +655,35 @@ Constraint policy:
                                     disabled={isBusy}
                                 >
                                     <ImageIcon className="h-4 w-4" />
+                                </ButtonWithTooltip>
+                                <div className="flex rounded-xl border border-zinc-200 bg-white/70 p-0.5 text-[11px]">
+                                    <button
+                                        type="button"
+                                        className={`rounded-lg px-2 py-1 ${forgeVisionMode === "form" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                                        onClick={() => setForgeVisionMode("form")}
+                                        disabled={isBusy}
+                                    >
+                                        Form
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`rounded-lg px-2 py-1 ${forgeVisionMode === "layout" ? "bg-zinc-900 text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                                        onClick={() => setForgeVisionMode("layout")}
+                                        disabled={isBusy}
+                                    >
+                                        Layout
+                                    </button>
+                                </div>
+                                <ButtonWithTooltip
+                                    tooltipContent={mepModeEnabled ? "MEP 排污生成：已开启" : "开启后同时生成排污管道（MEP 专项）"}
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 rounded-xl px-2 text-[11px] font-semibold ${mepModeEnabled ? "bg-cyan-100 text-cyan-800 hover:bg-cyan-200" : "text-muted-foreground hover:text-foreground"}`}
+                                    onClick={() => setMepModeEnabled((value) => !value)}
+                                    disabled={isBusy}
+                                >
+                                    MEP
                                 </ButtonWithTooltip>
                                 <ButtonWithTooltip
                                     tooltipContent={voiceButtonTitle}
@@ -583,13 +733,32 @@ Constraint policy:
                                         采用图片形体继续生成 BIM
                                     </Button>
                                 )}
-                                {attachment && !isBusy && (
+                                {forgeVisionLayout && !isBusy && (
                                     <Button
-                                        className="h-8 rounded-xl bg-sky-600 px-3 text-xs text-white hover:bg-sky-700"
-                                        onClick={sendToLayoutAgent}
+                                        className="mr-2 h-8 rounded-xl bg-violet-600 px-3 text-xs text-white hover:bg-violet-700"
+                                        onClick={handleForgeVisionLayoutContinue}
                                         size="sm"
                                     >
-                                        交付 ForgeVision-Form
+                                        采用空间拓扑继续生成 BIM
+                                    </Button>
+                                )}
+                                {attachment && !isBusy && (
+                                    <Button
+                                        className="h-8 rounded-xl bg-sky-600 px-3 text-xs text-white hover:bg-sky-700 disabled:bg-sky-300 disabled:cursor-not-allowed"
+                                        onClick={sendToLayoutAgent}
+                                        disabled={isLayoutSubmitting}
+                                        size="sm"
+                                    >
+                                        {isLayoutSubmitting ? (
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <LoaderCircle className="h-3 w-3 animate-spin" />
+                                                正在交付...
+                                            </span>
+                                        ) : (
+                                            <>
+                                                交付 {forgeVisionMode === "layout" ? "ForgeVision-Layout" : "ForgeVision-Form"}
+                                            </>
+                                        )}
                                     </Button>
                                 )}
                                 {isBusy ? (
@@ -623,6 +792,7 @@ Constraint policy:
                         onChange={(event) => {
                             selectFile(event.target.files?.[0] || null)
                             setForgeVisionForm(null)
+                            setForgeVisionLayout(null)
                             event.currentTarget.value = ""
                         }}
                     />

@@ -62,6 +62,153 @@ const DEFAULT_CLARIFY_BASE_URL: Record<string, string> = {
     anthropic: "https://api.anthropic.com",
 }
 
+type AgentKey = "architect" | "constructor" | "checker"
+
+const AGENT_META: Record<
+    AgentKey,
+    { label: string; helper: string; storageKey: keyof typeof STORAGE_KEYS }
+> = {
+    architect: {
+        label: "Architect-Agent（规划）",
+        helper: "推理型模型更合适（Claude Opus / o3 / DeepSeek R1）",
+        storageKey: "architectAgentOverride",
+    },
+    constructor: {
+        label: "Constructor-Agent（代码）",
+        helper: "代码专项模型更合适（Qwen2.5-Coder / Claude Sonnet）",
+        storageKey: "constructorAgentOverride",
+    },
+    checker: {
+        label: "Checker-Agent（审查）",
+        helper: "轻量模型即可（Haiku / 本地 Ollama）",
+        storageKey: "checkerAgentOverride",
+    },
+}
+
+interface AgentOverrideValue {
+    provider?: string
+    modelId?: string
+    baseUrl?: string
+    apiKey?: string
+}
+
+function readAgentOverride(agent: AgentKey): AgentOverrideValue {
+    if (typeof window === "undefined") return {}
+    const raw = localStorage.getItem(STORAGE_KEYS[AGENT_META[agent].storageKey])
+    if (!raw) return {}
+    try {
+        const parsed = JSON.parse(raw)
+        if (parsed && typeof parsed === "object") return parsed as AgentOverrideValue
+    } catch {
+        // ignore malformed
+    }
+    return {}
+}
+
+function writeAgentOverride(agent: AgentKey, value: AgentOverrideValue) {
+    const key = STORAGE_KEYS[AGENT_META[agent].storageKey]
+    const clean = Object.fromEntries(
+        Object.entries(value).filter(([, v]) => typeof v === "string" && v.trim() !== ""),
+    )
+    if (Object.keys(clean).length === 0) {
+        localStorage.removeItem(key)
+    } else {
+        localStorage.setItem(key, JSON.stringify(clean))
+    }
+}
+
+function AgentSpecializationSection() {
+    const [overrides, setOverrides] = useState<Record<AgentKey, AgentOverrideValue>>(() => ({
+        architect: readAgentOverride("architect"),
+        constructor: readAgentOverride("constructor"),
+        checker: readAgentOverride("checker"),
+    }))
+
+    const update = (agent: AgentKey, field: keyof AgentOverrideValue, value: string) => {
+        const next = { ...overrides[agent], [field]: value }
+        const merged = { ...overrides, [agent]: next }
+        setOverrides(merged)
+        writeAgentOverride(agent, next)
+    }
+
+    const clear = (agent: AgentKey) => {
+        const merged = { ...overrides, [agent]: {} }
+        setOverrides(merged)
+        writeAgentOverride(agent, {})
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Agent 模型专业化（高级）</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+                为每个子 Agent 单独指定提供商 / 模型。留空则使用主模型。研究建议：
+                推理模型分配给 Architect，代码模型分配给 Constructor，轻量模型分配给 Checker。
+            </p>
+            <div className="space-y-3">
+                {(Object.keys(AGENT_META) as AgentKey[]).map((agent) => {
+                    const meta = AGENT_META[agent]
+                    const value = overrides[agent]
+                    const hasAny = Object.values(value).some((v) => typeof v === "string" && v.trim() !== "")
+                    return (
+                        <div
+                            key={agent}
+                            className="rounded-lg border border-border/60 bg-surface-2/30 p-3 space-y-2"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <div className="text-sm font-medium">{meta.label}</div>
+                                    <div className="text-[11px] text-muted-foreground">{meta.helper}</div>
+                                </div>
+                                {hasAny ? (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={() => clear(agent)}
+                                    >
+                                        重置
+                                    </Button>
+                                ) : null}
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Input
+                                    value={value.provider || ""}
+                                    placeholder="provider（anthropic / deepseek / ollama）"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => update(agent, "provider", e.target.value)}
+                                />
+                                <Input
+                                    value={value.modelId || ""}
+                                    placeholder="modelId"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => update(agent, "modelId", e.target.value)}
+                                />
+                                <Input
+                                    value={value.baseUrl || ""}
+                                    placeholder="baseUrl（可选）"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => update(agent, "baseUrl", e.target.value)}
+                                />
+                                <Input
+                                    type="password"
+                                    value={value.apiKey || ""}
+                                    placeholder="apiKey（可选）"
+                                    className="h-8 text-xs"
+                                    onChange={(e) => update(agent, "apiKey", e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    )
+}
+
 export function SettingsDialog({
     open,
     onOpenChange,
@@ -338,6 +485,10 @@ export function SettingsDialog({
                             )}
                         </div>
                     </div>
+
+                    <div className="h-px bg-border/60" />
+
+                    <AgentSpecializationSection />
 
                     <div className="h-px bg-border/60" />
 

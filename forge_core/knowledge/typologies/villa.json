@@ -1,0 +1,85 @@
+{
+    "building_type": "villa",
+    "label_zh": "别墅",
+    "label_en": "Detached House / Villa",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 12,
+            "range": [10, 16]
+        },
+        "floor_height_m": {
+            "typical": 3.3,
+            "range": [3.0, 3.6]
+        },
+        "structural_grid_m": {
+            "typical": 4.2,
+            "options": [3.6, 4.2, 4.8, 6.0]
+        },
+        "core_area_ratio": {
+            "typical": 0.05,
+            "range": [0.03, 0.08],
+            "note": "Often a private stair only, no lift."
+        },
+        "corridor_width_m": {
+            "single_load": 1.2,
+            "double_load": 1.2,
+            "fire_code_min": 1.1
+        },
+        "window_wall_ratio": {
+            "typical": 0.45,
+            "range": [0.3, 0.6]
+        }
+    },
+    "program_zones": [
+        {
+            "name": "living",
+            "label_zh": "起居厅",
+            "ratio": 0.18,
+            "preferred_orientation": ["south"]
+        },
+        {
+            "name": "kitchen_dining",
+            "label_zh": "餐厨",
+            "ratio": 0.15,
+            "adjacency": ["living"]
+        },
+        {
+            "name": "master_suite",
+            "label_zh": "主卧套",
+            "ratio": 0.22,
+            "adjacency": ["stair"]
+        },
+        {
+            "name": "secondary_bedroom",
+            "label_zh": "次卧",
+            "ratio": 0.18
+        },
+        {
+            "name": "bathroom",
+            "label_zh": "卫生间",
+            "ratio": 0.07
+        },
+        {
+            "name": "stair",
+            "label_zh": "楼梯",
+            "ratio": 0.05
+        },
+        {
+            "name": "service",
+            "label_zh": "储藏 / 车库",
+            "ratio": 0.15
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.3,
+        "storey_count": 3,
+        "per_floor_area_m2": 150,
+        "floor_depth_m": 12,
+        "structural_grid_m": 4.2
+    },
+    "mass_composition_hint": "Small-footprint compact plan with the living/dining/kitchen on the ground floor, bedrooms upstairs, and an attic or basement for services. The stair is a hinge in the centre. Gabled or hipped roof typical.",
+    "few_shot_example": {
+        "user_input": "\u4e09\u5c42\u522b\u5885\uff0c\u603b\u5efa\u9762 450 m\u00b2",
+        "architect_guidance": "12 m \u00d7 12 m \u77e9\u5f62\u8fdb\u6df1\u3002\u9996\u5c42\u5357\u4fa7\u5e03\u7f6e\u8d77\u5c45\u5385 30 m\u00b2 + \u9910\u5385 18 m\u00b2\uff0c\u5317\u4fa7\u5e03\u7f6e\u5f00\u653e\u5f0f\u53a8\u623f 15 m\u00b2 + \u5ba2\u536b 5 m\u00b2 + \u516c\u7528\u697c\u68af\u3002\u4e8c\u5c42\u4e3b\u5367 28 m\u00b2\uff08\u542b\u5957\u536b 6 m\u00b2\uff09+ 2 \u95f4\u6b21\u5367 + 2 \u534f\u540c\u536b\u751f\u95f4\u3002\u4e09\u5c42\u5f00\u91ca\u9876\u697c + \u5929\u53f0\u3002"
+    }
+}

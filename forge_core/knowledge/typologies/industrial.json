@@ -1,0 +1,75 @@
+{
+    "building_type": "industrial",
+    "label_zh": "工业厂房",
+    "label_en": "Industrial Factory",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 30,
+            "range": [24, 48],
+            "note": "Clear-span single-storey or low-rise frames dominate."
+        },
+        "floor_height_m": {
+            "typical": 9.0,
+            "range": [6.0, 15.0],
+            "note": "Crane rails, ductwork, and sprinklers drive the height."
+        },
+        "structural_grid_m": {
+            "typical": 12.0,
+            "options": [9.0, 12.0, 15.0, 18.0]
+        },
+        "core_area_ratio": {
+            "typical": 0.05,
+            "range": [0.03, 0.08]
+        },
+        "corridor_width_m": {
+            "single_load": 2.0,
+            "double_load": 3.0,
+            "fire_code_min": 1.8
+        },
+        "window_wall_ratio": {
+            "typical": 0.2,
+            "range": [0.1, 0.3]
+        }
+    },
+    "program_zones": [
+        {
+            "name": "workshop",
+            "label_zh": "生产车间",
+            "ratio": 0.70,
+            "adjacency": ["aisle"]
+        },
+        {
+            "name": "office",
+            "label_zh": "管理办公",
+            "ratio": 0.08,
+            "adjacency": ["corridor"]
+        },
+        {
+            "name": "locker",
+            "label_zh": "更衣间",
+            "ratio": 0.05
+        },
+        {
+            "name": "restroom",
+            "label_zh": "卫生间",
+            "ratio": 0.03
+        },
+        {
+            "name": "service",
+            "label_zh": "设备间",
+            "ratio": 0.14
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 9.0,
+        "storey_count": 1,
+        "per_floor_area_m2": 2000,
+        "floor_depth_m": 30,
+        "structural_grid_m": 12.0
+    },
+    "mass_composition_hint": "Single-storey pitched or flat-roof shed with a mezzanine for offices. Large bay spans, loading bays at grade, ridge ventilators or monitor roof. Restrooms and lockers grouped near the employee entrance, not scattered.",
+    "few_shot_example": {
+        "user_input": "\u4e00\u5c42\u5382\u623f\uff0c\u5efa\u7b51\u9762\u79ef 3000 m\u00b2\uff0c\u5c42\u9ad8 9 m",
+        "architect_guidance": "\u7ec4\u5408 50 m \u00d7 60 m \u5355\u8de8\u67b6\u94a2\u7ed3\u6784\u5382\u623f\uff0c\u7eb5\u5411 12 m \u8de8\u8ddd\u3001\u6a2a\u5411 15 m \u67f1\u8ddd\u3002\u4e1c\u4fa7\u5c3d\u5934\u5e03\u7f6e 6 \u00d7 6 m \u5361\u8f66\u88c5\u5378\u5730\u5761\uff0c\u9644\u8bbe 2 m \u7ebf\u7f13\u51b2\u533a\u3002\u897f\u4fa7\u4e8c\u5c42 300 m\u00b2 \u538b\u7ed3\u7815\u7ba1\u529e\u516c\u5939\u5c42\uff08\u542b\u4f1a\u8bae\u3001\u8c03\u5ea6\u5ba4\u3001\u66f4\u8863 + \u536b\u751f\u95f4\uff09\u3002\u5c4b\u9762\u7eb5\u5411\u8bbe\u5149\u5bbd\uff0c\u5c42\u9ad8 9 m\uff0c\u6863\u6843\u8d77\u540a 3.5 m\u3002"
+    }
+}

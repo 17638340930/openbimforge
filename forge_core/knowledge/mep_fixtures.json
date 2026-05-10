@@ -1,0 +1,149 @@
+{
+    "schema_version": "1.0",
+    "reference": "GB 50015-2019 Table 4.4.5 and Appendix A",
+    "fixtures": {
+        "wash_basin": {
+            "label_zh": "\u6d17\u624b\u76c6",
+            "label_en": "Wash Basin",
+            "footprint_mm": [600, 500],
+            "discharge_unit": 0.75,
+            "trap_type": "P_trap",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 40,
+            "mount": "wall",
+            "water_supply": true,
+            "placement_hint": "near_door_or_mirror_wall"
+        },
+        "toilet": {
+            "label_zh": "\u5751\u5e8f\u5f0f\u9a6c\u6876",
+            "label_en": "Toilet (Floor-Mounted)",
+            "footprint_mm": [400, 700],
+            "discharge_unit": 6.0,
+            "trap_type": "integral",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 100,
+            "mount": "floor",
+            "water_supply": true,
+            "placement_hint": "against_wall_back_to_stack"
+        },
+        "squat_toilet": {
+            "label_zh": "\u8e32\u4fbf\u5668",
+            "label_en": "Squat Toilet",
+            "footprint_mm": [500, 750],
+            "discharge_unit": 6.0,
+            "trap_type": "S_trap",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 100,
+            "mount": "floor",
+            "water_supply": true,
+            "placement_hint": "against_wall"
+        },
+        "urinal": {
+            "label_zh": "\u5c0f\u4fbf\u6597",
+            "label_en": "Urinal",
+            "footprint_mm": [400, 350],
+            "discharge_unit": 2.5,
+            "trap_type": "P_trap",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 50,
+            "mount": "wall",
+            "water_supply": true,
+            "placement_hint": "against_wall_row"
+        },
+        "floor_drain": {
+            "label_zh": "\u5730\u6f0f",
+            "label_en": "Floor Drain",
+            "footprint_mm": [150, 150],
+            "discharge_unit": 0.5,
+            "trap_type": "integral",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 50,
+            "mount": "floor",
+            "water_supply": false,
+            "placement_hint": "lowest_point_of_room"
+        },
+        "kitchen_sink": {
+            "label_zh": "\u53a8\u623f\u6c34\u69fd",
+            "label_en": "Kitchen Sink",
+            "footprint_mm": [800, 500],
+            "discharge_unit": 1.0,
+            "trap_type": "P_trap",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 50,
+            "mount": "counter",
+            "water_supply": true,
+            "placement_hint": "against_wall_counter"
+        },
+        "shower": {
+            "label_zh": "\u6dcb\u6d74\u5668",
+            "label_en": "Shower",
+            "footprint_mm": [900, 900],
+            "discharge_unit": 1.0,
+            "trap_type": "integral",
+            "min_trap_depth_mm": 50,
+            "drain_diameter_mm": 50,
+            "mount": "floor",
+            "water_supply": true,
+            "placement_hint": "corner"
+        },
+        "cleanout": {
+            "label_zh": "\u6e05\u626b\u53e3",
+            "label_en": "Cleanout",
+            "footprint_mm": [100, 100],
+            "discharge_unit": 0,
+            "drain_diameter_mm": 0,
+            "mount": "pipe",
+            "placement_hint": "every_15m_on_trunk"
+        }
+    },
+    "room_fixture_templates": {
+        "bathroom": [
+            {"type": "toilet", "count": 1},
+            {"type": "wash_basin", "count": 1},
+            {"type": "floor_drain", "count": 1}
+        ],
+        "restroom_public_male": [
+            {"type": "toilet", "count": 2},
+            {"type": "urinal", "count": 3},
+            {"type": "wash_basin", "count": 2},
+            {"type": "floor_drain", "count": 1}
+        ],
+        "restroom_public_female": [
+            {"type": "toilet", "count": 4},
+            {"type": "wash_basin", "count": 2},
+            {"type": "floor_drain", "count": 1}
+        ],
+        "kitchen": [
+            {"type": "kitchen_sink", "count": 1},
+            {"type": "floor_drain", "count": 1}
+        ],
+        "tea_room": [
+            {"type": "kitchen_sink", "count": 1},
+            {"type": "floor_drain", "count": 1}
+        ]
+    },
+    "diameter_sizing_table": {
+        "comment": "Soil stack / horizontal branch sizing by cumulative Discharge Units. GB 50015 Table 4.5.5/4.5.10 simplified.",
+        "soil_branch": [
+            {"max_du": 4, "diameter_mm": 50},
+            {"max_du": 10, "diameter_mm": 75},
+            {"max_du": 30, "diameter_mm": 100},
+            {"max_du": 100, "diameter_mm": 150},
+            {"max_du": 10000, "diameter_mm": 200}
+        ],
+        "soil_stack": [
+            {"max_du": 6, "diameter_mm": 75},
+            {"max_du": 40, "diameter_mm": 100},
+            {"max_du": 170, "diameter_mm": 150},
+            {"max_du": 10000, "diameter_mm": 200}
+        ]
+    },
+    "routing_rules": {
+        "min_slope_pct_pvc": 2.6,
+        "min_slope_pct_cast_iron": 2.0,
+        "ceiling_void_mm": 500,
+        "max_stack_spacing_m": 15.0,
+        "max_cleanout_spacing_m": 15.0,
+        "max_bend_without_cleanout_deg": 45
+    }
+}

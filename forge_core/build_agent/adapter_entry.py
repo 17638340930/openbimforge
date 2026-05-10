@@ -153,10 +153,14 @@ def prepare_nexus_transit_payload(payload: dict, generation_result: dict) -> dic
             "output_sum": generation_result.get("output_sum", ""),
             "state_path": generation_result.get("state_path", ""),
             "model_used": generation_result.get("model_used", ""),
+            "quality": generation_result.get("quality", {}),
+            "requirement_slots": generation_result.get("requirement_slots", {}),
+            "typology_key": generation_result.get("typology_key", ""),
         },
         "agent_output": generation_result.get("agent_output", ""),
         "code_result": generation_result.get("code_result", ""),
         "output_sum": generation_result.get("output_sum", ""),
+        "requirement_slots": generation_result.get("requirement_slots", {}),
         "execution_config": {
             **execution_config,
             "resultPath": str(result_path),
@@ -215,6 +219,10 @@ def prepare_nexus_transit_payload(payload: dict, generation_result: dict) -> dic
         "state_path": generation_result.get("state_path", ""),
         "model_used": generation_result.get("model_used", ""),
         "execution_mode": "vectorworks",
+        "quality": generation_result.get("quality", {}),
+        "requirement_slots": generation_result.get("requirement_slots", {}),
+        "typology_key": generation_result.get("typology_key", ""),
+        "mep": generation_result.get("mep", {}),
     }
 
 

@@ -1,0 +1,44 @@
+[project]
+name = "openbimforge"
+version = "0.1.0"
+description = "Multi-agent generative BIM + MEP framework bridging LLM planning and Vectorworks execution."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "JY" }]
+
+# Runtime dependencies needed by the external Python bridge (the one Next.js
+# spawns) and the MEP agent. The Vectorworks VM ships its own pinned Python
+# so those runtime surfaces are intentionally minimal.
+dependencies = [
+    "transformers>=4.40.0,<5.0.0",
+    "accelerate",
+    "requests",
+    "sentencepiece",
+    "openai",
+    "python-dotenv",
+    "mistralai",
+    "anthropic",
+    "google-genai",
+    "pillow",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<10.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = [
+    # The runtime_config deprecation warnings are intentional and
+    # informational; keep them visible but do not turn into errors.
+    "default::DeprecationWarning",
+]
+
+[tool.uv]
+# uv automatically uses `.venv/` at the project root, which is already
+# populated. No extra configuration needed; the pyproject is here so
+# `uv sync`, `uv pip install`, and `uv run pytest` all work out of the
+# box going forward.

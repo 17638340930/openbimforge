@@ -1,0 +1,88 @@
+{
+    "building_type": "office",
+    "label_zh": "办公楼",
+    "label_en": "Office Building",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 15,
+            "range": [12, 18],
+            "note": "Single-loaded corridor <12 m; deeper than 18 m causes natural lighting loss at core."
+        },
+        "floor_height_m": {
+            "typical": 3.9,
+            "range": [3.3, 4.2],
+            "note": "Clear height after MEP/ceiling; below 3.3 m feels compressed."
+        },
+        "structural_grid_m": {
+            "typical": 8.4,
+            "options": [7.2, 8.1, 8.4, 9.0],
+            "note": "8.4 m balances open office flexibility and parking bay alignment."
+        },
+        "core_area_ratio": {
+            "typical": 0.18,
+            "range": [0.15, 0.22],
+            "note": "Vertical transport + restrooms + shafts."
+        },
+        "corridor_width_m": {
+            "single_load": 1.5,
+            "double_load": 1.8,
+            "fire_code_min": 1.4
+        },
+        "window_wall_ratio": {
+            "typical": 0.4,
+            "range": [0.35, 0.55]
+        },
+        "typical_per_floor_area_m2": {
+            "small": 450,
+            "medium": 700,
+            "large": 1200
+        }
+    },
+    "program_zones": [
+        {
+            "name": "open_office",
+            "label_zh": "开放办公区",
+            "ratio": 0.55,
+            "adjacency": ["corridor"],
+            "min_area_m2": 60,
+            "preferred_orientation": ["south", "east"]
+        },
+        {
+            "name": "meeting_room",
+            "label_zh": "会议室",
+            "ratio": 0.12,
+            "adjacency": ["corridor"],
+            "typical_area_m2": 24
+        },
+        {
+            "name": "core",
+            "label_zh": "核心筒",
+            "ratio": 0.18,
+            "position": "center",
+            "contains": ["elevator", "stair", "restroom", "shaft"]
+        },
+        {
+            "name": "service",
+            "label_zh": "辅助用房",
+            "ratio": 0.08,
+            "adjacency": ["core"]
+        },
+        {
+            "name": "circulation",
+            "label_zh": "走廊",
+            "ratio": 0.07
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.9,
+        "storey_count": 6,
+        "per_floor_area_m2": 700,
+        "floor_depth_m": 15,
+        "structural_grid_m": 8.4
+    },
+    "mass_composition_hint": "Perimeter walls define a rectangular or L-shaped footprint. The central core anchors the plan. Open office wraps the south/east facades; meeting rooms line the corridor between core and facade. Each storey repeats with minor variation at ground floor (lobby) and top floor (MEP setback).",
+    "few_shot_example": {
+        "user_input": "6\u5c42\u529e\u516c\u697c\uff0c\u603b\u9762\u79ef4200m\u00b2\uff0c\u5c42\u9ad83.6m",
+        "architect_guidance": "\u5355\u5c42700 m\u00b2\uff0c\u5efa\u8bae36 m \u00d7 20 m \u77e9\u5f62\u8fdb\u6df1\uff1b\u4e2d\u90e88 m \u00d7 8 m \u6838\u5fc3\u7b52\u7ea6 64 m\u00b2\uff08\u542b\u4e24\u90e8\u7535\u68af\u3001\u5357\u5317\u5404\u4e00\u90e8\u758f\u6563\u697c\u68af\u3001\u536b\u751f\u95f4\u3001\u7ba1\u4e95\uff09\u3002\u4e1c\u897f\u4e24\u4fa7\u5404\u5e03\u7f6e\u5f00\u653e\u529e\u516c\u7ea6 250 m\u00b2\uff0c\u5357\u4fa7\u5e03\u7f6e 2-3 \u95f4\u4f1a\u8bae\u5ba4\u3002\u6bcf\u5c42\u4e1c\u897f\u5404\u8bbe\u4e00\u90e8\u75cf\u6563\u697c\u68af\uff0c\u9996\u5c42\u5c42\u9ad84.2 m\uff0c\u6807\u51c6\u5c42\u5c42\u9ad83.6 m\u3002"
+    }
+}

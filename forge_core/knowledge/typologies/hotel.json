@@ -1,0 +1,77 @@
+{
+    "building_type": "hotel",
+    "label_zh": "酒店",
+    "label_en": "Hotel",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 18,
+            "range": [16, 22],
+            "note": "Room modules on both sides of central corridor."
+        },
+        "floor_height_m": {
+            "typical": 3.3,
+            "range": [3.0, 3.6]
+        },
+        "structural_grid_m": {
+            "typical": 7.8,
+            "options": [7.2, 7.8, 8.4]
+        },
+        "core_area_ratio": {
+            "typical": 0.15,
+            "range": [0.12, 0.18]
+        },
+        "corridor_width_m": {
+            "single_load": 1.5,
+            "double_load": 1.8,
+            "fire_code_min": 1.4
+        },
+        "window_wall_ratio": {
+            "typical": 0.35,
+            "range": [0.3, 0.45]
+        },
+        "guest_room_module_m2": {
+            "standard": 28,
+            "deluxe": 40,
+            "suite": 60
+        }
+    },
+    "program_zones": [
+        {
+            "name": "guest_room",
+            "label_zh": "客房",
+            "ratio": 0.72,
+            "adjacency": ["corridor"],
+            "typical_area_m2": 28,
+            "preferred_orientation": ["south", "east", "west"]
+        },
+        {
+            "name": "core",
+            "label_zh": "核心交通",
+            "ratio": 0.12,
+            "position": "center",
+            "contains": ["elevator", "stair", "shaft", "service_lift"]
+        },
+        {
+            "name": "service",
+            "label_zh": "布草 / 设备",
+            "ratio": 0.08
+        },
+        {
+            "name": "circulation",
+            "label_zh": "走廊",
+            "ratio": 0.08
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.3,
+        "storey_count": 12,
+        "per_floor_area_m2": 720,
+        "floor_depth_m": 18,
+        "structural_grid_m": 7.8
+    },
+    "mass_composition_hint": "Slab or Y-shaped plate with rooms wrapping the perimeter and central service core. Ground floor is a double-height lobby / restaurant podium. Upper floors repeat a strict guest-room module.",
+    "few_shot_example": {
+        "user_input": "12 \u5c42\u9152\u5e97\uff0c\u6bcf\u5c42\u7ea6 720 m\u00b2",
+        "architect_guidance": "\u6807\u51c6\u5c42\u4e24\u4fa7\u5404\u5e03\u7f6e 8 \u95f4\u6807\u51c6\u5ba2\u623f\uff0828 m\u00b2/\u95f4\uff09\uff0c\u4e2d\u90e8\u5e03\u7f6e\u4ea4\u901a\u6838\uff083 \u90e8\u5ba2\u68af + 1 \u90e8\u8d27\u68af + \u53cc\u7aef\u758f\u6563\u697c\u68af + \u5e03\u8349\u95f4\uff09\uff0c\u8d70\u5ed2\u51c0\u5bbd 1.6 m\u3002\u9996\u5c42\u8bbe\u5927\u5802\u3001\u5168\u65e5\u9910\u5385\u3001\u4f1a\u8bae\u5377\u5e18\u3002"
+    }
+}

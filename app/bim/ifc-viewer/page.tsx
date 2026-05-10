@@ -187,7 +187,9 @@ export default async function IfcViewerPage({
                         Semantic Asset Preview
                     </h2>
                     <p className="mt-1 text-xs text-zinc-500 italic">
-                        Visualizing synthesized IFC metadata. 3D Constructive View (Three.js/web-ifc) integration pending.
+                        Showing the raw IFC text stream. For an interactive 3D view,
+                        open the exported IFC in any IFC-compatible viewer
+                        (Solibri, BIMvision, IFCjs, etc.).
                     </p>
                     {error ? (
                         <pre className="mt-4 overflow-auto rounded-2xl bg-red-950/40 p-4 text-xs text-red-200 border border-red-500/20">

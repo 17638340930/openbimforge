@@ -1,6 +1,15 @@
 """
-openBIMForge Compatibility Shim
-Redirects 'import vs' to the mock implementation in forge_core.
+openBIMForge Vectorworks module shim.
+
+This file intentionally lives at the project root so that external Python
+processes (the Nexus bridge, MEP pipeline, CLI tools, unit tests) can run
+``import vs`` outside the Vectorworks VM. The mock exports match the real
+`vs.*` surface area used by the Constructor-Agent (see
+``forge_core/design_agent/vs.py`` for the full signature stubs).
+
+Do NOT delete. The file is required for all external tooling; when the
+code actually runs inside the Vectorworks VM, VW's built-in `vs` module
+takes precedence.
 """
 import os
 import sys

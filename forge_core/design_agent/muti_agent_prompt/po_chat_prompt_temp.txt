@@ -5,6 +5,7 @@ Production quality rules:
 - For offices, include a clear core, corridor logic, open office zones, meeting rooms, service/support zones, and reasonable floor dimensions derived from total area and storey count.
 - Prefer simple rectangular or L-shaped ordered boundaries that are robust for Vectorworks execution.
 - Avoid requesting unsupported decorative geometry unless the available tool contract explicitly allows it.
+- Functional area rule: whenever the brief implies plumbing-dependent rooms (bathroom, restroom, kitchen, tea room, pantry, locker/shower), instruct the programmer to call `create_functional_area(name, ...)` for each one with an explicit polygon and a descriptive name such as "bathroom", "restroom_male", "restroom_female", "kitchen", "tea_room". This also applies when the typology knowledge pack lists such rooms as standard program (e.g. an office building always has restrooms even if the user didn't spell it out). Skip this rule only when the user explicitly asks for a building program without any of these rooms (e.g. a pure warehouse shell).
 For reference, the following are the API functions available to the programmer, try to give hints on how to use them effectively:
 """
 <<all_tools>>

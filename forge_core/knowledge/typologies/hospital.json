@@ -1,0 +1,84 @@
+{
+    "building_type": "hospital",
+    "label_zh": "医院",
+    "label_en": "Hospital",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 18,
+            "range": [16, 22]
+        },
+        "floor_height_m": {
+            "typical": 4.5,
+            "range": [4.2, 5.1],
+            "note": "Required to accommodate MEP, medical gas, and heavy ceilings."
+        },
+        "structural_grid_m": {
+            "typical": 8.4,
+            "options": [7.8, 8.4, 9.0]
+        },
+        "core_area_ratio": {
+            "typical": 0.20,
+            "range": [0.16, 0.24]
+        },
+        "corridor_width_m": {
+            "single_load": 2.4,
+            "double_load": 3.0,
+            "fire_code_min": 2.4,
+            "note": "Must accommodate gurneys and parallel traffic."
+        },
+        "window_wall_ratio": {
+            "typical": 0.4,
+            "range": [0.3, 0.5]
+        }
+    },
+    "program_zones": [
+        {
+            "name": "ward",
+            "label_zh": "病房",
+            "ratio": 0.45,
+            "adjacency": ["nurse_station", "corridor"],
+            "typical_area_m2": 30,
+            "preferred_orientation": ["south", "southeast"]
+        },
+        {
+            "name": "nurse_station",
+            "label_zh": "护士站",
+            "ratio": 0.05,
+            "position": "center_of_ward_cluster"
+        },
+        {
+            "name": "outpatient",
+            "label_zh": "门诊诊室",
+            "ratio": 0.15,
+            "adjacency": ["corridor"]
+        },
+        {
+            "name": "core",
+            "label_zh": "核心交通",
+            "ratio": 0.18,
+            "contains": ["elevator", "stair", "shaft", "dirty_lift"]
+        },
+        {
+            "name": "service",
+            "label_zh": "医辅用房",
+            "ratio": 0.12
+        },
+        {
+            "name": "circulation",
+            "label_zh": "走廊",
+            "ratio": 0.05
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 4.5,
+        "storey_count": 5,
+        "per_floor_area_m2": 1400,
+        "floor_depth_m": 18,
+        "structural_grid_m": 8.4
+    },
+    "mass_composition_hint": "Hospitals use wide-body plans with double-loaded corridors separating wards (south) from nursing/service (north). A central core groups clean and dirty lifts. Repeat floors follow a strict ward module. Ground floor is an outpatient / emergency / imaging podium.",
+    "few_shot_example": {
+        "user_input": "5 \u5c42\u533b\u9662\u4f4f\u9662\u90e8\uff0c\u6bcf\u5c42\u7ea6 1400 m\u00b2",
+        "architect_guidance": "\u6807\u51c6\u5c42\u5357\u4fa7\u5e03\u7f6e\u7ea6 20 \u95f4\u4e24\u5e8a\u95f4\u75c5\u623f\uff083\u00d75 m \u5355\u4f4d\uff09\uff0c\u4e2d\u95f4\u62a4\u58eb\u7ad9 + \u57ce\u4fbf\u7ea7\u533b\u52a1\u8f85\u52a9\uff0c\u5317\u4fa7\u4e3a\u5904\u7f6e\u5ba4 + \u6df7\u5408\u8f85\u52a9\u7a7a\u95f4\u3002\u4e2d\u592e\u6838\u5fc3\u7b52\u96c6\u6210 4 \u90e8\u7535\u68af\uff082 \u6e05 + 2 \u6d01\uff09\u3001\u53cc\u7aef\u697c\u68af\u3001\u7ba1\u4e95\u3002\u8d70\u5ed2\u51c0\u5bbd 3.0 m\u3002"
+    }
+}

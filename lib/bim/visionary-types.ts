@@ -1,3 +1,5 @@
+export type ForgeVisionMode = "form" | "layout"
+
 export interface ForgeVisionFormResult {
     source: "forgevision-form"
     sessionId: string
@@ -19,4 +21,34 @@ export interface ForgeVisionFormResult {
     constraints?: ForgeVisionFormResult["forgeVisionConstraints"]
 }
 
-export type NormalizedVisionaryResult = ForgeVisionFormResult
+export interface ForgeVisionLayoutRoom {
+    id: string
+    type: "office" | "meeting" | "corridor" | "core" | "service" | "unknown"
+    name?: string
+    polygon: Array<[number, number]>
+    areaM2?: number
+    confidence?: number
+}
+
+export interface ForgeVisionLayoutResult {
+    source: "forgevision-layout"
+    sessionId: string
+    status: "completed" | "completed_reference_only" | "failed" | "no_outputs" | "timeout"
+    previewPaths: string[]
+    layoutTopologyPath?: string
+    logPath?: string
+    forgeVisionLayoutConstraints: {
+        inputKind: "floor_plan" | "layout_reference" | "unknown"
+        isReferenceOnly: true
+        rooms: ForgeVisionLayoutRoom[]
+        adjacency: Array<[string, string]>
+        circulationHint?: string
+        coreHint?: string
+        scaleHint?: string
+        notes: string[]
+    }
+    constraints?: ForgeVisionLayoutResult["forgeVisionLayoutConstraints"]
+}
+
+export type ForgeVisionResult = ForgeVisionFormResult | ForgeVisionLayoutResult
+export type NormalizedVisionaryResult = ForgeVisionResult

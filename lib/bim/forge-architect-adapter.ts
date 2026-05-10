@@ -7,6 +7,13 @@ import {
     getNexusRuntimeRoot,
 } from "@/lib/bim/openbimforge-paths"
 
+export interface NexusArchitectAgentOverride {
+    provider?: string
+    modelId?: string
+    baseUrl?: string
+    apiKey?: string
+}
+
 export interface NexusArchitectAdapterInput {
     query: string
     chatHistory?: string
@@ -19,11 +26,22 @@ export interface NexusArchitectAdapterInput {
         baseUrl?: string
         apiKey?: string
         vertexApiKey?: string
+        /**
+         * Per-agent overrides. When present, the sub-agent uses the
+         * specified provider/model instead of the top-level one. Missing
+         * keys fall back to the top-level config.
+         */
+        agentOverrides?: {
+            architect?: NexusArchitectAgentOverride
+            constructor?: NexusArchitectAgentOverride
+            checker?: NexusArchitectAgentOverride
+        }
     }
     executionConfig?: {
         executionMode?: "dry-run" | "vectorworks"
         solibriPath?: string
         outputRoot?: string
+        mepMode?: "drainage"
     }
 }
 
@@ -507,6 +525,9 @@ export async function runNexusArchitectAdapter(
                 OPENBIMFORGE_RUNTIME_ROOT: path.join(projectRoot, "forge_runtime"),
                 HF_HOME: path.join(projectRoot, ".cache"),
                 PYTHONIOENCODING: "utf-8",
+                ...(input.executionConfig?.mepMode
+                    ? { OPENBIMFORGE_MEP_MODE: input.executionConfig.mepMode }
+                    : {}),
             },
             timeoutMs,
             input,
@@ -536,7 +557,21 @@ export async function runNexusArchitectAdapter(
         diagnostics.bridge_logs = result.logs
         diagnostics.progress_stages = result.stages
         diagnostics.bridge_exit_code = result.exitCode
-        
+
+        const live = (parsed.live as Record<string, unknown>) || {}
+        if (live.quality && diagnostics.quality === undefined) {
+            diagnostics.quality = live.quality
+        }
+        if (live.requirement_slots && diagnostics.requirement_slots === undefined) {
+            diagnostics.requirement_slots = live.requirement_slots
+        }
+        if (live.typology_key && diagnostics.typology_key === undefined) {
+            diagnostics.typology_key = live.typology_key
+        }
+        if (live.mep && diagnostics.mep === undefined) {
+            diagnostics.mep = live.mep
+        }
+
         // Map backend Python error message to UI format
         if (diagnostics.error && !diagnostics.live_error) {
             diagnostics.live_error = diagnostics.error

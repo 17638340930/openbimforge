@@ -1,5 +1,6 @@
 import json
 import os
+import warnings
 from pathlib import Path
 from typing import Any, Dict
 
@@ -9,6 +10,10 @@ PROJECT_ROOT = os.environ.get(
     "OPENBIMFORGE_ROOT",
     os.environ.get("PROJECT_ROOT", str(_DEFAULT_PROJECT_ROOT)),
 )
+
+# Tracks TEXT2BIM_* fallbacks we have already warned about so the log is
+# not flooded when the same key is read repeatedly.
+_LEGACY_ENV_WARNED: set[str] = set()
 
 OPENAI_COMPATIBLE_PROVIDERS = {
     "openai",
@@ -42,7 +47,17 @@ def _env(primary: str, legacy: str = "", default: str = "") -> str:
     if value:
         return value
     if legacy:
-        return os.environ.get(legacy, default)
+        legacy_value = os.environ.get(legacy, "")
+        if legacy_value and legacy not in _LEGACY_ENV_WARNED:
+            _LEGACY_ENV_WARNED.add(legacy)
+            warnings.warn(
+                f"Environment variable '{legacy}' is deprecated; "
+                f"use '{primary}' instead. The TEXT2BIM_* aliases will be "
+                "removed once the Vectorworks .vlb plugin is rebuilt.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return legacy_value or default
     return default
 
 

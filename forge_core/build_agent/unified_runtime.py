@@ -46,7 +46,7 @@ def log_progress(message: str) -> None:
 
 def _extract_forgevision_payload(query: str) -> Dict[str, Any]:
     match = re.search(
-        r"【ForgeVisionConstraints】\s*(\{[\s\S]*?\})\s*【用户补充需求】",
+        r"(?:【ForgeVisionConstraints】|【ForgeVisionLayoutConstraints】)\s*(\{[\s\S]*?\})\s*【用户补充需求】",
         query or "",
     )
     if not match:
@@ -182,10 +182,52 @@ def _read_cad_vector_hint(cad_vector_path: str) -> Dict[str, Any]:
     return hint
 
 
+def _build_forgevision_layout_context_hint(payload: Dict[str, Any]) -> str:
+    constraints = payload.get("forgeVisionLayoutConstraints") or payload.get("constraints") or {}
+    rooms = constraints.get("rooms") or []
+    adjacency = constraints.get("adjacency") or []
+    preview_paths = payload.get("previewPaths") or []
+    topology_path = payload.get("layoutTopologyPath") or ""
+    room_lines: List[str] = []
+    for room in rooms[:12]:
+        if not isinstance(room, dict):
+            continue
+        room_lines.append(
+            "- {id}: type={type}, area={area} m2, polygon={polygon}".format(
+                id=room.get("id", "room"),
+                type=room.get("type", "unknown"),
+                area=room.get("areaM2", "unknown"),
+                polygon=room.get("polygon", [])[:6],
+            )
+        )
+
+    lines = [
+        "",
+        "ForgeVision-Layout semantic context:",
+        "- Treat ForgeVision-Layout outputs as reference-only floor-plan topology, not final BIM geometry.",
+        f"- Preview present: {bool(preview_paths)}",
+        f"- Layout topology path present: {bool(topology_path)}",
+        f"- Room count: {len(rooms)}, adjacency edges: {len(adjacency)}.",
+        f"- Circulation hint: {constraints.get('circulationHint', 'use clean corridor-connected circulation')}",
+        f"- Core hint: {constraints.get('coreHint', 'place a central vertical core')}",
+        f"- Scale hint: {constraints.get('scaleHint', 'unknown')}",
+        "[LAYOUT_ROOMS]",
+        "\n".join(room_lines) if room_lines else "- unavailable",
+        f"[LAYOUT_ADJACENCY] {json.dumps(adjacency[:24], ensure_ascii=False)}",
+        "- Architect-Agent should infer program zoning from rooms and adjacency instead of asking for cadVectorPath.",
+        "- Constructor-Agent should create native spaces, perimeter/interior walls, doors, slabs, corridors, and a vertical core from this topology.",
+        "- Keep the layout schematic and editable; do not import the image as a final drawing.",
+    ]
+    return "\n".join(lines)
+
+
 def _build_forgevision_context_hint(query: str) -> str:
     payload = _extract_forgevision_payload(query)
     if not payload:
         return ""
+
+    if payload.get("source") == "forgevision-layout" or payload.get("forgeVisionLayoutConstraints"):
+        return _build_forgevision_layout_context_hint(payload)
 
     constraints = payload.get("forgeVisionConstraints") or payload.get("constraints") or {}
     stl_paths = payload.get("stlPaths") or []
@@ -316,25 +358,48 @@ class UnifiedOpenAICompatibleAgent(OpenAiAgent):
         if not base_url:
             raise ValueError("Nexus unified runtime requires a baseUrl.")
 
+        # Resolve the effective credential once so both the parent class
+        # (which eagerly instantiates an OpenAI client in its constructor)
+        # and our downstream override receive it. Ollama endpoints accept
+        # any string, so we substitute a sentinel to satisfy the SDK.
+        resolved_api_key = api_key or (
+            "ollama" if _is_ollama_endpoint("", base_url) else ""
+        )
+        if not resolved_api_key:
+            raise ValueError(
+                "Nexus unified runtime requires an apiKey for non-Ollama providers; "
+                "check your frontend model configuration."
+            )
+
+        # ``OpenAiAgent.__init__`` constructs ``self.client = OpenAI(api_key=...)``
+        # during ``super().__init__`` so we must pass the real key here,
+        # otherwise the parent raises before we get a chance to overwrite.
         super().__init__(
+            model=model,
+            api_key=resolved_api_key,
             chat_prompt_template=chat_prompt_template,
             run_prompt_template=run_prompt_template,
             additional_tools=additional_tools,
         )
-        
+
+        # Replace the parent's plain OpenAI client with one configured for
+        # the custom ``base_url`` plus a lenient HTTP/1.1 httpx transport
+        # (needed for proxies that drop HTTP/2 mid-stream).
         import httpx
         client_kwargs = {
-            "api_key": api_key or ("ollama" if _is_ollama_endpoint("", base_url) else ""),
+            "api_key": resolved_api_key,
+            "base_url": base_url,
             "timeout": httpx.Timeout(1800.0, connect=60.0),
             "http_client": httpx.Client(
                 verify=False,
-                http2=False,  # Force HTTP/1.1 to bypass proxy/TLS EOF drops
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-            )
+                http2=False,
+                headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                },
+            ),
         }
-        if base_url:
-            client_kwargs["base_url"] = base_url
-            
+
         self.client = OpenAI(**client_kwargs)
         self.model = model
 
@@ -523,6 +588,49 @@ def _build_style_manifest_hint(manifest: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _resolve_agent_overrides(
+    llm_config: Dict[str, Any],
+    agent_key: str,
+) -> Dict[str, str]:
+    """Returns per-agent model overrides, falling back to the main config.
+
+    The Nexus pipeline supports running each sub-agent on a different
+    model/provider. Clients send per-agent overrides inside
+    ``llm_config.agentOverrides[agent_key]`` — for example:
+
+        {
+            "agentOverrides": {
+                "architect": {"provider": "anthropic",
+                              "modelId": "claude-opus-4-20250514"},
+                "constructor": {"provider": "deepseek",
+                                "modelId": "deepseek-coder"}
+            }
+        }
+
+    Missing keys fall back to the top-level config, so the legacy
+    single-model path still works without any client change.
+    """
+    base = {
+        "provider": str(llm_config.get("provider", "") or "").lower(),
+        "modelId": str(llm_config.get("modelId", "") or ""),
+        "baseUrl": str(llm_config.get("baseUrl", "") or ""),
+        "apiKey": str(llm_config.get("apiKey", "") or ""),
+    }
+    overrides = (llm_config.get("agentOverrides") or {}).get(agent_key) or {}
+    if not isinstance(overrides, dict):
+        return base
+    resolved = dict(base)
+    for key in ("provider", "modelId", "baseUrl", "apiKey"):
+        value = overrides.get(key)
+        if value:
+            resolved[key] = str(value)
+    resolved["provider"] = resolved["provider"].lower()
+    resolved["baseUrl"] = normalize_base_url(resolved["provider"], resolved["baseUrl"])
+    if not resolved["apiKey"] and _is_ollama_endpoint(resolved["provider"], resolved["baseUrl"]):
+        resolved["apiKey"] = "ollama"
+    return resolved
+
+
 def create_unified_agent(provider: str, model_id: str, api_key: str, base_url: str, prompt: str, tool_list: list):
     """Creates the appropriate agent based on the provider, injecting custom HTTP clients for stability."""
     import httpx
@@ -606,8 +714,21 @@ def run_nexus_architect_pipeline(payload: Dict[str, Any]) -> Dict[str, Any]:
     style_manifest = _load_style_manifest()
     style_manifest_hint = _build_style_manifest_hint(style_manifest)
 
+    # Pre-extract semantic slots so we can consult the typology knowledge pack
+    # before we even call the Architect-Agent. The Architect still refines
+    # these slots downstream.
+    from forge_core.build_agent.adapter_entry import extract_semantic_slots
+    from forge_core.knowledge import build_typology_prompt_hint, resolve_default
+
+    merged_requirement_text = f"{query}\n{chat_history_front_end}"
+    pre_slots = extract_semantic_slots(merged_requirement_text)
+    building_type_hint = pre_slots.get("building_type") or "default"
+    typology_prompt_hint = build_typology_prompt_hint(building_type_hint)
+
     tool_list = init_vw_tools()
     po_prompt = _load_text(PRODUCT_OWNER_PROMPT_PATH)
+    if typology_prompt_hint:
+        po_prompt += "\n\n" + typology_prompt_hint
     po_prompt += """
 
 ForgeVision-Form interpretation rules:
@@ -617,6 +738,27 @@ ForgeVision-Form interpretation rules:
 - Enrich the architecture: define program zones, vertical core, floor plates, facade rhythm, openings, circulation, and roof/MEP massing instead of producing a plain white block.
 """
     coder_prompt = _load_text(CODER_PROMPT_PATH)
+    if typology_prompt_hint:
+        coder_prompt += "\n\n" + typology_prompt_hint
+
+    # When the user toggled MEP mode, the downstream drainage agent will
+    # look for `create_functional_area` calls named after plumbing rooms
+    # (bathroom / restroom / kitchen / tea_room / pantry). Give the
+    # Constructor an explicit heads-up so it allocates those rooms even
+    # if the original brief was terse. This is strictly additive - it
+    # does NOT force plumbing rooms when the user asked for a building
+    # that has none.
+    if str(os.environ.get("OPENBIMFORGE_MEP_MODE", "")).lower() in {"1", "true", "drainage"}:
+        mep_hint = (
+            "\n[MEP drainage mode is active]\n"
+            "The downstream drainage pipeline needs to locate plumbing rooms by name. "
+            "For the current brief, allocate at least one explicitly-named functional area per plumbing room "
+            "(bathroom / restroom_male / restroom_female / kitchen / tea_room) wherever the building program "
+            "reasonably requires one. If the user explicitly said there are no plumbing rooms, skip this."
+        )
+        coder_prompt += mep_hint
+        po_prompt += mep_hint
+
     coder_prompt += """
 
 Python correctness constraints:
@@ -635,6 +777,7 @@ Python correctness constraints:
 - Avoid plain white-box output: include storeys, slabs, perimeter walls, a vertical circulation/core zone, roof/MEP massing, facade openings, and at least one program-zone distinction when scale allows.
 - Based on complexity_score, generate at least one interior vertical core (stair/elevator shaft) and distinct facade window patterns when the score is above 40.
 - When spatial_reading is "multi-volume stepped massing", generated Vectorworks code must include layered floor-plate logic with native slab creation and wall creation loops; prefer vs.CreateSlab / slab helper calls and vs.Wall / wall helper calls over mesh-like proxy geometry.
+- When ForgeVision-Layout context is present, prioritize [LAYOUT_ROOMS] and [LAYOUT_ADJACENCY]: create room/space zones first, then walls, slabs, doors, corridors, and the vertical core. Do not ask for cadVectorPath in this mode.
 - If vector data is ambiguous, prefer a clean schematic BIM interpretation over copying mesh-like geometry.
 """
 
@@ -642,29 +785,40 @@ Python correctness constraints:
     return_code_only = True
 
     log_progress(f"Activating Nexus-Architect with model: {model_id}")
-    log_progress(f"[Diagnostics] Provider: {provider} | BaseURL: {base_url} | API Key length: {len(api_key)}")
+    # Avoid echoing API key length to logs — even length is a side channel
+    # (e.g. OpenAI keys are 51 chars, Anthropic 108). Only report presence.
+    log_progress(
+        f"[Diagnostics] Provider: {provider} | BaseURL: {base_url} | "
+        f"API key provided: {bool(api_key)}"
+    )
     log_progress(f"[Diagnostics] Execution Mode: {execution_mode} | Return Code Only: {return_code_only}")
 
     log_progress("Creating Architect-Agent client...")
+    architect_cfg = _resolve_agent_overrides(llm_config, "architect")
     agent_po = create_unified_agent(
-        provider=provider,
-        model_id=model_id,
-        api_key=api_key,
-        base_url=base_url,
+        provider=architect_cfg["provider"] or provider,
+        model_id=architect_cfg["modelId"] or model_id,
+        api_key=architect_cfg["apiKey"] or api_key,
+        base_url=architect_cfg["baseUrl"] or base_url,
         prompt=po_prompt,
         tool_list=tool_list,
     )
-    log_progress("Architect-Agent client ready.")
+    log_progress(
+        f"Architect-Agent client ready. model={architect_cfg['modelId'] or model_id}"
+    )
     log_progress("Creating Constructor-Agent client...")
+    constructor_cfg = _resolve_agent_overrides(llm_config, "constructor")
     agent_coder = create_unified_agent(
-        provider=provider,
-        model_id=model_id,
-        api_key=api_key,
-        base_url=base_url,
+        provider=constructor_cfg["provider"] or provider,
+        model_id=constructor_cfg["modelId"] or model_id,
+        api_key=constructor_cfg["apiKey"] or api_key,
+        base_url=constructor_cfg["baseUrl"] or base_url,
         prompt=coder_prompt,
         tool_list=tool_list,
     )
-    log_progress("Constructor-Agent client ready.")
+    log_progress(
+        f"Constructor-Agent client ready. model={constructor_cfg['modelId'] or model_id}"
+    )
     agent_po.set_stream(streamer)
     agent_coder.set_stream(streamer)
     _capture_agent_output(agent_po)
@@ -783,12 +937,142 @@ Python correctness constraints:
     stage_events.append(coder_event)
     emit_stage_event(coder_event)
 
+    # Stage 2.5: Checker (quality gate + bounded regeneration)
+    from forge_core.build_agent.nexus_checker import run_checker_stage
+
+    requirement_slots = {
+        "building_type": pre_slots.get("building_type"),
+        "storey_count": pre_slots.get("storey_count"),
+        "target_area_m2": pre_slots.get("target_area_m2"),
+        "floor_height_m": resolve_default(
+            pre_slots.get("building_type"),
+            "floor_height_m",
+            pre_slots.get("floor_height_m"),
+        ),
+    }
+
+    resources_for_checker = {
+        "door_symbols": list(style_manifest.get("door_symbols") or []),
+        "window_symbols": list(style_manifest.get("window_symbols") or []),
+        "wall_styles": list(style_manifest.get("wall_styles") or []),
+        "slab_styles": list(style_manifest.get("slab_styles") or []),
+        "roof_styles": list(style_manifest.get("roof_styles") or []),
+    }
+
+    try:
+        checker_outcome = run_checker_stage(
+            code=code_result or "",
+            resources=resources_for_checker,
+            degradations=[],
+            requirements=requirement_slots,
+            typology_hint=typology_prompt_hint,
+            agent_coder=agent_coder,
+            chat_history=chat_history,
+            emit_stage_event=emit_stage_event,
+            stage_events=stage_events,
+        )
+        code_result = checker_outcome.get("code") or code_result
+        quality_report = checker_outcome.get("quality") or {}
+    except Exception as checker_error:
+        log_progress(f"Checker stage skipped due to error: {checker_error}")
+        quality_report = {}
+        checker_outcome = {
+            "did_rewrite": False,
+            "error": str(checker_error),
+        }
+
     # Stage 3: Persistence
     if isinstance(state, dict):
         previous_state.update(state)
     _save_state(previous_state)
     
     output_sum = get_output_sum()
+
+    # Optional Stage M: MEP Engineer (sanitary drainage).
+    mep_enabled = str(os.environ.get("OPENBIMFORGE_MEP_MODE", "")).lower() in {"1", "true", "drainage"}
+    mep_outcome: Dict[str, Any] = {"enabled": mep_enabled}
+    if mep_enabled:
+        try:
+            from forge_core.mep_agent.bridge import building_plan_from_architect_result
+            from forge_core.mep_agent.mep_pipeline import run_mep_pipeline
+
+            mep_stage_start = time.perf_counter()
+            mep_running_event = {
+                "id": "mep_agent",
+                "label": "MEP-Engineer (\u6392\u6c61)",
+                "status": "running",
+                "detail": "Deriving BuildingPlan and routing sanitary drainage...",
+            }
+            stage_events.append(mep_running_event)
+            emit_stage_event(mep_running_event)
+
+            building_plan = building_plan_from_architect_result(
+                {
+                    "agent_output": answer,
+                    "code_result": code_result,
+                    "project_name": f"nexus_{building_type_hint}",
+                },
+                project_name=f"nexus_{building_type_hint}",
+                state_path=_get_state_path(),
+            )
+
+            mep_output_dir = os.path.join(RUNTIME_ROOT, "mep_out")
+            mep_result = run_mep_pipeline(
+                building_plan,
+                output_dir=mep_output_dir,
+                write_ifc=True,
+                write_script=True,
+                on_stage=lambda event: emit_stage_event({
+                    **event,
+                    "label": event.get("label") or event.get("id", "mep_stage"),
+                }),
+            )
+
+            mep_plan = mep_result["plan"]
+            mep_quality = mep_result["quality"]
+            mep_artefacts = mep_result["artefacts"]
+            mep_duration_ms = round((time.perf_counter() - mep_stage_start) * 1000, 1)
+
+            mep_event = {
+                "id": "mep_agent",
+                "label": "MEP-Engineer (\u6392\u6c61)",
+                "status": "completed",
+                "duration_ms": mep_duration_ms,
+                "detail": (
+                    f"fixtures={len(mep_plan.fixtures)} "
+                    f"stacks={len(mep_plan.stacks)} "
+                    f"pipes={len(mep_plan.pipes)} "
+                    f"quality={mep_quality['quality_score']}/100"
+                ),
+            }
+            stage_events.append(mep_event)
+            emit_stage_event(mep_event)
+
+            mep_outcome.update(
+                {
+                    "quality": mep_quality,
+                    "artefacts": mep_artefacts,
+                    "warnings": mep_plan.warnings,
+                    "metrics": mep_plan.metrics,
+                    "fixture_count": len(mep_plan.fixtures),
+                    "stack_count": len(mep_plan.stacks),
+                    "pipe_count": len(mep_plan.pipes),
+                    "ifc_path": mep_artefacts.get("ifc_path"),
+                    "plan_path": mep_artefacts.get("plan_path"),
+                    "script_path": mep_artefacts.get("script_path"),
+                }
+            )
+        except Exception as mep_error:
+            log_progress(f"MEP stage skipped due to error: {mep_error}")
+            failure_event = {
+                "id": "mep_agent",
+                "label": "MEP-Engineer (\u6392\u6c61)",
+                "status": "failed",
+                "detail": str(mep_error),
+            }
+            stage_events.append(failure_event)
+            emit_stage_event(failure_event)
+            mep_outcome.update({"error": str(mep_error)})
 
     return {
         "ok": True,
@@ -801,4 +1085,12 @@ Python correctness constraints:
         "provider_used": provider,
         "execution_mode": execution_mode,
         "style_manifest": style_manifest,
+        "quality": quality_report,
+        "requirement_slots": requirement_slots,
+        "typology_key": building_type_hint,
+        "checker_outcome": {
+            "did_rewrite": bool(checker_outcome.get("did_rewrite")),
+            "threshold": checker_outcome.get("threshold"),
+        },
+        "mep": mep_outcome,
     }

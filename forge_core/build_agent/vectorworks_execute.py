@@ -186,47 +186,36 @@ def _static_validate_and_rewrite_code(
         "degradations": degradations,
         "unresolved_disabled_calls": unresolved_disabled_calls,
         "rewrote_code": rewritten_code != code,
-        "quality": _build_quality_report(resources, degradations),
+        "quality": _build_quality_report(
+            rewritten_code,
+            resources,
+            degradations,
+            payload.get("requirement_slots") or payload.get("semantic_slots") or {},
+        ),
     }
     return rewritten_code, validation
 
 
 def _build_quality_report(
+    code: str,
     resources: Dict[str, List[str]],
     degradations: List[Dict[str, str]],
+    requirements: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    penalty = 0
-    missing_resources: List[str] = []
-    if not resources.get("door_symbols"):
-        penalty += 8
-        missing_resources.append("door_symbols")
-    if not resources.get("window_symbols"):
-        penalty += 8
-        missing_resources.append("window_symbols")
-    if not resources.get("slab_styles"):
-        penalty += 4
-        missing_resources.append("slab_styles")
-    if not resources.get("roof_styles"):
-        penalty += 4
-        missing_resources.append("roof_styles")
-    penalty += min(len(degradations) * 2, 12)
-    quality_score = max(0, 100 - penalty)
-    status = "success" if quality_score >= 90 else "partial_success"
-    return {
-        "build_status": status,
-        "quality_score": quality_score,
-        "native_bim_score": max(0, quality_score - (10 if degradations else 0)),
-        "fallback_score": 100 if degradations else 0,
-        "degradation_count": len(degradations),
-        "missing_resources": missing_resources,
-        "next_actions": [
-            "Load a Vectorworks template containing door/window symbols if native doors/windows are required.",
-            "Run vectorworks_capability_scan.write_manifest again after loading the template.",
-            "Regenerate the handoff so the LLM receives the updated Tool Contract.",
-        ]
-        if missing_resources
-        else [],
-    }
+    """Delegates to the three-dimensional quality evaluator.
+
+    Kept as a free function here so callers inside ``vectorworks_execute`` keep
+    working, but the real logic lives in
+    ``forge_core.build_agent.quality_evaluator``.
+    """
+    from forge_core.build_agent.quality_evaluator import evaluate_bim_quality
+
+    return evaluate_bim_quality(
+        code=code or "",
+        resources=resources,
+        degradations=degradations,
+        requirements=requirements or {},
+    )
 
 
 def _build_execution_namespace() -> dict:

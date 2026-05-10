@@ -1,0 +1,80 @@
+{
+    "building_type": "dormitory",
+    "label_zh": "宿舍",
+    "label_en": "Dormitory",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 13,
+            "range": [11, 15]
+        },
+        "floor_height_m": {
+            "typical": 3.3,
+            "range": [3.0, 3.6]
+        },
+        "structural_grid_m": {
+            "typical": 3.6,
+            "options": [3.3, 3.6, 4.2]
+        },
+        "core_area_ratio": {
+            "typical": 0.10,
+            "range": [0.08, 0.13]
+        },
+        "corridor_width_m": {
+            "single_load": 1.5,
+            "double_load": 2.1,
+            "fire_code_min": 1.4
+        },
+        "window_wall_ratio": {
+            "typical": 0.35,
+            "range": [0.25, 0.45]
+        },
+        "unit_module_m2": {
+            "four_bed": 24,
+            "six_bed": 32
+        }
+    },
+    "program_zones": [
+        {
+            "name": "dorm_unit",
+            "label_zh": "寝室",
+            "ratio": 0.72,
+            "adjacency": ["corridor"],
+            "typical_area_m2": 24,
+            "preferred_orientation": ["south"]
+        },
+        {
+            "name": "shared_bathroom",
+            "label_zh": "公共卫浴",
+            "ratio": 0.08,
+            "adjacency": ["corridor"]
+        },
+        {
+            "name": "laundry",
+            "label_zh": "洗衣间",
+            "ratio": 0.04
+        },
+        {
+            "name": "lounge",
+            "label_zh": "活动厅",
+            "ratio": 0.06
+        },
+        {
+            "name": "core",
+            "label_zh": "核心交通",
+            "ratio": 0.10,
+            "contains": ["stair", "elevator"]
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.3,
+        "storey_count": 6,
+        "per_floor_area_m2": 520,
+        "floor_depth_m": 13,
+        "structural_grid_m": 3.6
+    },
+    "mass_composition_hint": "Double-loaded slab block with dorm rooms on the south, shared bathrooms, laundry, and lounge clustered on the north at each end. Two stairs at the slab ends plus a lift near the centre. Ground floor carries reception, administrative offices, and a multi-purpose lounge.",
+    "few_shot_example": {
+        "user_input": "\u9ad8\u6821 6 \u5c42\u5b66\u751f\u5bbf\u820d\uff0c\u6bcf\u5c42 520 m\u00b2",
+        "architect_guidance": "48 m \u00d7 11 m \u677f\u5f0f\u5355\u5143\uff0c\u5357\u5357 8 \u95f4 4 \u4eba\u5bdd\u5ba4\u300124 m\u00b2/\u95f4\uff0c\u5185\u542b\u5957\u9633\u53f0\u3002\u5317\u4fa7\u5e03\u7f6e 2 \u4e2a\u516c\u5171\u6d74\u6d17\u533a\uff08\u7537 / \u5973 \u5206\u533a\uff09\u3001\u6d17\u8863\u95f4 + \u6d3b\u52a8\u5382\u3002\u4e1c\u897f\u5404\u8bbe\u4e00\u90e8\u5ba4\u5185\u697c\u68af\uff0c\u4e2d\u90e8\u7535\u68af\u3002\u9996\u5c42\u8d77\u5c3a\u4e24\u95f4\u7ba1\u7406\u5ba4 + \u63a5\u5f85\u5927\u5385 + \u591a\u529f\u80fd\u5ef3\u3002"
+    }
+}

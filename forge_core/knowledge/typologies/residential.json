@@ -1,0 +1,83 @@
+{
+    "building_type": "residential",
+    "label_zh": "住宅",
+    "label_en": "Residential Building",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 14,
+            "range": [11, 16],
+            "note": "Double-loaded slab block; apartments on both sides of central corridor."
+        },
+        "floor_height_m": {
+            "typical": 3.0,
+            "range": [2.8, 3.3],
+            "note": "Residential net clear height is 2.4\u20132.6 m; structural height ~3.0 m."
+        },
+        "structural_grid_m": {
+            "typical": 3.9,
+            "options": [3.6, 3.9, 4.2, 6.0],
+            "note": "Smaller grids match apartment bay widths."
+        },
+        "core_area_ratio": {
+            "typical": 0.12,
+            "range": [0.10, 0.15]
+        },
+        "corridor_width_m": {
+            "single_load": 1.2,
+            "double_load": 1.4,
+            "fire_code_min": 1.1
+        },
+        "window_wall_ratio": {
+            "typical": 0.35,
+            "range": [0.25, 0.45]
+        },
+        "typical_per_floor_area_m2": {
+            "small": 300,
+            "medium": 550,
+            "large": 900
+        },
+        "unit_module_m2": {
+            "one_bed": 55,
+            "two_bed": 85,
+            "three_bed": 120
+        }
+    },
+    "program_zones": [
+        {
+            "name": "apartment_unit",
+            "label_zh": "住宅\u5355\u5143",
+            "ratio": 0.80,
+            "adjacency": ["corridor"],
+            "preferred_orientation": ["south"]
+        },
+        {
+            "name": "core",
+            "label_zh": "交通核",
+            "ratio": 0.10,
+            "position": "center_or_end",
+            "contains": ["elevator", "stair", "shaft"]
+        },
+        {
+            "name": "circulation",
+            "label_zh": "走廊",
+            "ratio": 0.08
+        },
+        {
+            "name": "service",
+            "label_zh": "设备用房",
+            "ratio": 0.02
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.0,
+        "storey_count": 11,
+        "per_floor_area_m2": 550,
+        "floor_depth_m": 14,
+        "structural_grid_m": 3.9
+    },
+    "mass_composition_hint": "Narrow slab block with apartments on the south facade and shared corridor/core on the north. Repeat floors with a ground-floor entry lobby and a roof-level stair penthouse/MEP setback.",
+    "few_shot_example": {
+        "user_input": "11\u5c42\u4f4f\u5b85\u697c\uff0c\u6bcf\u5c42 550 m\u00b2",
+        "architect_guidance": "\u5b9a\u4f4d\u5c0f\u9ad8\u5c42\u677f\u5f0f\u4f4f\u5b85\uff1b\u6bcf\u5c42\u5e03\u7f6e 6 \u4e2a\u5355\u5143\uff08\u4e24\u8fb9\u4e09\u5c45\u5ba4 120 m\u00b2\uff0c\u4e2d\u95f4\u4e24\u5c45\u5ba4 85 m\u00b2\uff0c\u5956\u7279\u4f4d\u4e24\u4e2a\u4e00\u5c45\u5ba4 55 m\u00b2\uff09\uff0c\u671d\u5357\u51fa\u9633\u53f0\u3002\u4ea4\u901a\u6838\u5c45\u4e2d\u8d77\u673a\u623f\uff0c\u914d\u5907 2 \u90e8\u7535\u68af + 1 \u90e8\u758f\u6563\u697c\u68af\u3002\u5c42\u9ad8 3.0 m\uff0c\u9996\u5c42\u9ad8 3.6 m\u3002"
+    }
+}

@@ -1,0 +1,49 @@
+{
+    "case_id": "case_03_school_linear",
+    "description": "Four-storey linear teaching building, restrooms and tea rooms at both ends",
+    "building_type": "school",
+    "plan": {
+        "project_name": "bench_school_4f",
+        "ceiling_void_mm": 500,
+        "ground_elevation_mm": 0,
+        "roof_elevation_mm": 15600,
+        "storeys": [
+            {
+                "id": "L1", "index": 0, "elevation_mm": 0, "height_mm": 3900,
+                "outline": [[0, 0], [60000, 0], [60000, 16000], [0, 16000]],
+                "shafts": [
+                    {"id": "shaft_east", "polygon": [[3000, 7000], [5000, 7000], [5000, 9000], [3000, 9000]]},
+                    {"id": "shaft_west", "polygon": [[55000, 7000], [57000, 7000], [57000, 9000], [55000, 9000]]}
+                ],
+                "rooms": [
+                    {"id": "wc_m_east", "type": "restroom_public_male",
+                     "polygon": [[1000, 10500], [5500, 10500], [5500, 14500], [1000, 14500]], "door": [3000, 10500]},
+                    {"id": "wc_f_east", "type": "restroom_public_female",
+                     "polygon": [[5500, 10500], [9500, 10500], [9500, 14500], [5500, 14500]], "door": [7500, 10500]},
+                    {"id": "tea_east", "type": "tea_room",
+                     "polygon": [[10500, 10500], [14500, 10500], [14500, 14500], [10500, 14500]], "door": [12500, 10500]},
+                    {"id": "wc_m_west", "type": "restroom_public_male",
+                     "polygon": [[52500, 10500], [56000, 10500], [56000, 14500], [52500, 14500]], "door": [54000, 10500]},
+                    {"id": "wc_f_west", "type": "restroom_public_female",
+                     "polygon": [[56000, 10500], [59000, 10500], [59000, 14500], [56000, 14500]], "door": [57500, 10500]}
+                ]
+            },
+            {
+                "id": "L2", "index": 1, "elevation_mm": 3900, "height_mm": 3900,
+                "outline": [[0, 0], [60000, 0], [60000, 16000], [0, 16000]],
+                "shafts": [
+                    {"id": "shaft_east", "polygon": [[3000, 7000], [5000, 7000], [5000, 9000], [3000, 9000]]},
+                    {"id": "shaft_west", "polygon": [[55000, 7000], [57000, 7000], [57000, 9000], [55000, 9000]]}
+                ],
+                "rooms": [
+                    {"id": "wc_m_east_L2", "type": "restroom_public_male",
+                     "polygon": [[1000, 10500], [5500, 10500], [5500, 14500], [1000, 14500]], "door": [3000, 10500]},
+                    {"id": "wc_f_east_L2", "type": "restroom_public_female",
+                     "polygon": [[5500, 10500], [9500, 10500], [9500, 14500], [5500, 14500]], "door": [7500, 10500]},
+                    {"id": "wc_m_west_L2", "type": "restroom_public_male",
+                     "polygon": [[52500, 10500], [56000, 10500], [56000, 14500], [52500, 14500]], "door": [54000, 10500]}
+                ]
+            }
+        ]
+    }
+}

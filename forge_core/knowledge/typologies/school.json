@@ -1,0 +1,83 @@
+{
+    "building_type": "school",
+    "label_zh": "学校 / 教学楼",
+    "label_en": "School Building",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 16,
+            "range": [14, 20]
+        },
+        "floor_height_m": {
+            "typical": 3.9,
+            "range": [3.6, 4.2],
+            "note": "Classrooms require clear height \u2265 3.0 m; structural 3.9 m is common."
+        },
+        "structural_grid_m": {
+            "typical": 9.0,
+            "options": [7.8, 9.0, 9.6]
+        },
+        "core_area_ratio": {
+            "typical": 0.10,
+            "range": [0.08, 0.13]
+        },
+        "corridor_width_m": {
+            "single_load": 2.1,
+            "double_load": 3.0,
+            "fire_code_min": 2.1
+        },
+        "window_wall_ratio": {
+            "typical": 0.5,
+            "range": [0.4, 0.6],
+            "note": "Classrooms require substantial daylighting."
+        }
+    },
+    "program_zones": [
+        {
+            "name": "classroom",
+            "label_zh": "普通教室",
+            "ratio": 0.55,
+            "adjacency": ["corridor"],
+            "typical_area_m2": 70,
+            "preferred_orientation": ["south", "southeast"]
+        },
+        {
+            "name": "corridor",
+            "label_zh": "走廊",
+            "ratio": 0.18
+        },
+        {
+            "name": "stair",
+            "label_zh": "楼梯",
+            "ratio": 0.07,
+            "position": "ends"
+        },
+        {
+            "name": "toilet",
+            "label_zh": "卫生间",
+            "ratio": 0.05
+        },
+        {
+            "name": "office",
+            "label_zh": "教师办公",
+            "ratio": 0.10,
+            "adjacency": ["corridor"]
+        },
+        {
+            "name": "service",
+            "label_zh": "辅助用房",
+            "ratio": 0.05
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.9,
+        "storey_count": 4,
+        "per_floor_area_m2": 900,
+        "floor_depth_m": 16,
+        "structural_grid_m": 9.0
+    },
+    "mass_composition_hint": "Long linear slab with classrooms facing south, single-loaded or double-loaded corridor on the north. Stair towers at both ends. Restrooms placed at mid-corridor. Ground floor may include an entry lobby, administration, and a double-height hall.",
+    "few_shot_example": {
+        "user_input": "4\u5c42\u6559\u5b66\u697c\uff0c\u6bcf\u5c42\u7ea6900 m\u00b2",
+        "architect_guidance": "\u5357\u5411\u5e03\u7f6e 8 \u95f4\u6807\u51c6\u6559\u5ba4\uff0870 m\u00b2/\u95f4\uff09\uff0c\u5317\u5411\u5206\u6563\u5e03\u7f6e\u6559\u5e08\u529e\u516c\u548c\u5b9e\u9a8c\u51c6\u5907\u5ba4\u3002\u4e1c\u897f\u4e24\u7aef\u5404\u8bbe\u4e00\u4e2a\u697c\u68af\u95f4\uff0c\u4e2d\u90e8\u5e03\u7f6e\u7537\u5973\u536b\u751f\u95f4\u3002\u8d70\u5ed2\u51c0\u5bbd 3.0 m\uff0c\u9996\u5c42\u62ac\u9ad8\u4f5c\u4e3a\u95e8\u5385\u548c\u5c55\u793a\u533a\u3002"
+    }
+}

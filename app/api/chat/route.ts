@@ -4,6 +4,7 @@ import {
     createUIMessageStreamResponse,
     generateObject,
     streamText,
+    type UIMessage,
 } from "ai"
 import { z } from "zod"
 import {
@@ -62,11 +63,25 @@ function buildClarificationOverrides(
     }
 }
 
-function getConversationUserText(messages: any[]): string {
+interface ChatTextPart {
+    type: "text"
+    text?: string
+}
+
+interface MinimalChatMessage {
+    role: string
+    parts?: Array<{ type: string; text?: string } | ChatTextPart>
+}
+
+type ChatMessage = UIMessage | MinimalChatMessage
+
+function getConversationUserText(messages: ChatMessage[]): string {
     return messages
-        .filter((m: any) => m.role === "user")
-        .map((m: any) => {
-            const textPart = m.parts?.find((p: any) => p.type === "text")
+        .filter((m) => m.role === "user")
+        .map((m) => {
+            const textPart = m.parts?.find(
+                (p): p is ChatTextPart => p.type === "text",
+            )
             return typeof textPart?.text === "string" ? textPart.text : ""
         })
         .filter(Boolean)
@@ -151,7 +166,7 @@ function shouldForceNexusSynthesis(userInputText: string, conversationText: stri
 }
 
 function hasForgeVisionFormContext(text: string): boolean {
-    return /ForgeVisionConstraints|forgevision-form|cadVectorPath|stlPaths|previewPaths/i.test(text)
+    return /ForgeVision(?:Layout)?Constraints|forgevision-(?:form|layout)|cadVectorPath|stlPaths|previewPaths|layoutTopologyPath|forgeVisionLayoutConstraints/i.test(text)
 }
 
 function extractForgeVisionComplexityScore(text: string): number {
@@ -168,8 +183,13 @@ function extractForgeVisionComplexityScore(text: string): number {
     return 92
 }
 
-function buildForgeVisionReadinessText(baseText: string, complexityScore: number, language: ClarifyLanguage): string {
-    const modeLine = complexityScore > 10
+function buildForgeVisionReadinessText(baseText: string, complexityScore: number, language: ClarifyLanguage, sourceText = ""): string {
+    const isLayout = /ForgeVisionLayoutConstraints|forgevision-layout|layoutTopologyPath|forgeVisionLayoutConstraints/i.test(sourceText)
+    const modeLine = isLayout
+        ? language === "en"
+            ? `Readiness score: ${Math.max(complexityScore, 85)}/100. ForgeVision-Layout spatial topology is loaded; layout-guided BIM workflow is enabled.`
+            : `需求整备完成度：${Math.max(complexityScore, 85)}/100。ForgeVision-Layout 空间拓扑已载入，系统将进入布局驱动 BIM 工作流。`
+        : complexityScore > 10
         ? language === "en"
             ? `Readiness score: ${complexityScore}/100. High-precision vector features detected; CAD-First construction workflow is enabled.`
             : `需求整备完成度：${complexityScore}/100。检测到高精度矢量特征，系统已自动切换至 [CAD-First] 构筑工作流。`
@@ -283,6 +303,22 @@ function buildExecutionLogBlock(
 ): string {
     const stageEvents = Array.isArray(live.stage_events) ? live.stage_events : []
     const bridgeLogs = Array.isArray(diagnostics.bridge_logs) ? diagnostics.bridge_logs : []
+    const quality =
+        (live.quality as Record<string, unknown>) ||
+        (diagnostics.quality as Record<string, unknown>) ||
+        undefined
+    const requirementSlots =
+        (live.requirement_slots as Record<string, unknown>) ||
+        (diagnostics.requirement_slots as Record<string, unknown>) ||
+        undefined
+    const typologyKey =
+        (live.typology_key as string | undefined) ||
+        (diagnostics.typology_key as string | undefined) ||
+        undefined
+    const mep =
+        (live.mep as Record<string, unknown>) ||
+        (diagnostics.mep as Record<string, unknown>) ||
+        undefined
     const payload = {
         title: language === "en" ? "Nexus Orchestration Flow" : "\u534f\u540c\u7f16\u6392\u6d41",
         status,
@@ -295,6 +331,10 @@ function buildExecutionLogBlock(
         exit_code: diagnostics.bridge_exit_code ?? undefined,
         stages: stageEvents,
         logs: bridgeLogs,
+        quality,
+        requirement_slots: requirementSlots,
+        typology_key: typologyKey,
+        mep,
     }
     return `<execution-log>${JSON.stringify(payload)}</execution-log>`
 }
@@ -397,8 +437,11 @@ async function handleChatRequest(req: Request): Promise<Response> {
     const customSystemMessage = typeof body.customSystemMessage === "string" ? body.customSystemMessage.slice(0, 5000) : ""
     const userId = getUserIdFromRequest(req)
     const validSessionId = sessionId && typeof sessionId === "string" && sessionId.length <= 200 ? sessionId : undefined
-    const lastUserMessage = [...messages].reverse().find((m: any) => m.role === "user")
-    const userInputText = lastUserMessage?.parts?.find((p: any) => p.type === "text")?.text || ""
+    const lastUserMessage = [...(messages as ChatMessage[])].reverse().find((m) => m.role === "user")
+    const userInputText =
+        lastUserMessage?.parts?.find(
+            (p): p is ChatTextPart => p.type === "text",
+        )?.text || ""
 
     setTraceInput({ input: userInputText, sessionId: validSessionId, userId })
 
@@ -431,7 +474,50 @@ async function handleChatRequest(req: Request): Promise<Response> {
         vertexApiKey: req.headers.get("x-vertex-api-key") || undefined,
     }
 
+    // Diagnostic: show which credentials arrived from the frontend so we can
+    // tell at a glance whether the problem is "key not sent" or "key not
+    // reaching Python". We never log the key itself, only its length/origin.
+    const selectedModelIdHeader = req.headers.get("x-selected-model-id") || ""
+    console.log(
+        "[Nexus-Route] client credentials | " +
+            `provider=${clientOverrides.provider || "(empty)"} ` +
+            `modelId=${clientOverrides.modelId || "(empty)"} ` +
+            `baseUrl=${clientOverrides.baseUrl || "(empty)"} ` +
+            `apiKey=${clientOverrides.apiKey ? "present(" + clientOverrides.apiKey.length + ")" : "(empty)"} ` +
+            `selectedModelId=${selectedModelIdHeader || "(empty)"}`,
+    )
+
+    // Optional per-agent model specialisation. Clients send a JSON blob in
+    // `x-agent-overrides` matching `{ architect?, constructor?, checker? }`.
+    // Missing agents fall back to the main model.
+    const agentOverridesHeader = req.headers.get("x-agent-overrides") || ""
+    const agentOverrides: Record<
+        string,
+        { provider?: string; modelId?: string; baseUrl?: string; apiKey?: string }
+    > = {}
+    if (agentOverridesHeader) {
+        try {
+            const parsed = JSON.parse(agentOverridesHeader)
+            if (parsed && typeof parsed === "object") {
+                for (const key of ["architect", "constructor", "checker"] as const) {
+                    const entry = parsed[key]
+                    if (entry && typeof entry === "object") {
+                        agentOverrides[key] = {
+                            provider: typeof entry.provider === "string" ? entry.provider : undefined,
+                            modelId: typeof entry.modelId === "string" ? entry.modelId : undefined,
+                            baseUrl: typeof entry.baseUrl === "string" ? entry.baseUrl : undefined,
+                            apiKey: typeof entry.apiKey === "string" ? entry.apiKey : undefined,
+                        }
+                    }
+                }
+            }
+        } catch {
+            console.warn("[Nexus-Route] Ignoring malformed x-agent-overrides header")
+        }
+    }
+
     const bimModeEnabled = req.headers.get("x-bim-mode") === "true"
+    const mepModeEnabled = req.headers.get("x-mep-mode") === "true"
     let bimStatusText: string | null = null
     let bimRouteSuggestion: GenerationRoute | null = null
     let bimClarifyLanguage: ClarifyLanguage = "zh"
@@ -450,8 +536,9 @@ async function handleChatRequest(req: Request): Promise<Response> {
                 buildReadinessStatusText(clarifyLanguage, forgeVisionComplexityScore, "nexus-synthesis", visionSnapshot),
                 forgeVisionComplexityScore,
                 clarifyLanguage,
+                forgeVisionText,
             )
-            console.log("[Nexus-Route] ForgeVision-Form context detected. Skipping clarification and routing to nexus-synthesis.")
+            console.log("[Nexus-Route] ForgeVision context detected. Skipping clarification and routing to nexus-synthesis.")
         }
         const clarificationDecision = evaluateClarificationNeed(conversationUserText || userInputText)
         const ruleSnapshot = clarificationDecision.slotSnapshot
@@ -527,7 +614,7 @@ async function handleChatRequest(req: Request): Promise<Response> {
             console.log(`  └─ → READY, routing to ${bimRouteSuggestion}`)
         } catch (err) {
             if (err instanceof Error && err.message === "__OPENBIMFORGE_SKIP_CLARIFICATION__") {
-                // Route was already resolved from the ForgeVision-Form context above.
+                // Route was already resolved from the ForgeVision context above.
             } else {
             console.warn("[Clarification Loop] Fallback triggered", err)
             if (shouldForceNexusSynthesis(userInputText, conversationUserText || userInputText) || !clarificationDecision.shouldClarify) {
@@ -552,6 +639,77 @@ async function handleChatRequest(req: Request): Promise<Response> {
     if (bimRouteSuggestion === "nexus-synthesis") {
         const nexusExecutionMode = (process.env.OPENBIMFORGE_DEFAULT_EXECUTION_MODE || process.env.TEXT2BIM_DEFAULT_EXECUTION_MODE) === "vectorworks" ? "vectorworks" : "dry-run"
         console.log(`[Nexus-Route] Execution mode: ${nexusExecutionMode}`)
+
+        // For server-side models the clientOverrides.apiKey is intentionally
+        // empty (the key lives in the server environment). We call getAIModel()
+        // here so the resolved provider/modelId are available, then read the
+        // actual API key from the server environment for the Python bridge.
+        let nexusProvider = clientOverrides.provider || "openai"
+        let nexusModelId = clientOverrides.modelId || "gpt-4o"
+        let nexusApiKey = clientOverrides.apiKey || undefined
+        let nexusBaseUrl = clientOverrides.baseUrl || undefined
+        try {
+            const resolved = getAIModel(clientOverrides)
+            nexusProvider = resolved.provider
+            nexusModelId = resolved.modelId
+
+            const selectedId = req.headers.get("x-selected-model-id") || ""
+            if (!nexusApiKey && selectedId.startsWith("server:")) {
+                // Server model: look up the apiKeyEnv from ai-models.json,
+                // then read the actual key from the process environment.
+                const { findServerModelById } = await import("@/lib/server-model-config")
+                const serverModel = await findServerModelById(selectedId)
+                if (serverModel?.apiKeyEnv) {
+                    const envNames = Array.isArray(serverModel.apiKeyEnv)
+                        ? serverModel.apiKeyEnv
+                        : [serverModel.apiKeyEnv]
+                    for (const envName of envNames) {
+                        const val = process.env[envName]
+                        if (val) { nexusApiKey = val; break }
+                    }
+                }
+                if (!nexusApiKey) {
+                    // Fall back to the standard provider env var.
+                    const providerEnvMap: Record<string, string> = {
+                        openai: "OPENAI_API_KEY",
+                        anthropic: "ANTHROPIC_API_KEY",
+                        google: "GOOGLE_GENERATIVE_AI_API_KEY",
+                        deepseek: "DEEPSEEK_API_KEY",
+                        siliconflow: "SILICONFLOW_API_KEY",
+                        openrouter: "OPENROUTER_API_KEY",
+                    }
+                    const envVarName = providerEnvMap[nexusProvider] || ""
+                    if (envVarName) nexusApiKey = process.env[envVarName] || undefined
+                }
+                if (!nexusBaseUrl && serverModel?.baseUrlEnv) {
+                    nexusBaseUrl = process.env[serverModel.baseUrlEnv] || undefined
+                }
+                if (!nexusBaseUrl) {
+                    const baseUrlEnvMap: Record<string, string> = {
+                        openai: "OPENAI_BASE_URL",
+                        anthropic: "ANTHROPIC_BASE_URL",
+                        deepseek: "DEEPSEEK_BASE_URL",
+                        siliconflow: "SILICONFLOW_BASE_URL",
+                        openrouter: "OPENROUTER_BASE_URL",
+                        ollama: "OLLAMA_BASE_URL",
+                    }
+                    const baseUrlEnvName = baseUrlEnvMap[nexusProvider] || ""
+                    if (baseUrlEnvName) nexusBaseUrl = process.env[baseUrlEnvName] || undefined
+                }
+            }
+        } catch {
+            // getAIModel may throw if credentials are missing; fall back to
+            // clientOverrides so the Python bridge can emit a clear error.
+        }
+
+        console.log(
+            "[Nexus-Route] python payload | " +
+                `provider=${nexusProvider} ` +
+                `modelId=${nexusModelId} ` +
+                `baseUrl=${nexusBaseUrl || "(empty)"} ` +
+                `apiKey=${nexusApiKey ? "present(" + nexusApiKey.length + ")" : "(empty)"}`,
+        )
+
         return createStreamingNexusResponse({
             bimStatusText: bimStatusText || "",
             language: bimClarifyLanguage,
@@ -561,13 +719,21 @@ async function handleChatRequest(req: Request): Promise<Response> {
                 sessionId: validSessionId,
                 mode: "live",
                 llmConfig: {
-                    provider: clientOverrides.provider || "openai",
-                    modelId: clientOverrides.modelId || "gpt-4o",
-                    baseUrl: clientOverrides.baseUrl || undefined,
-                    apiKey: clientOverrides.apiKey || undefined,
+                    provider: nexusProvider,
+                    modelId: nexusModelId,
+                    baseUrl: nexusBaseUrl,
+                    apiKey: nexusApiKey,
+                    ...(Object.keys(agentOverrides).length > 0 && {
+                        agentOverrides: agentOverrides as {
+                            architect?: { provider?: string; modelId?: string; baseUrl?: string; apiKey?: string }
+                            constructor?: { provider?: string; modelId?: string; baseUrl?: string; apiKey?: string }
+                            checker?: { provider?: string; modelId?: string; baseUrl?: string; apiKey?: string }
+                        },
+                    }),
                 },
                 executionConfig: {
                     executionMode: nexusExecutionMode,
+                    mepMode: mepModeEnabled ? "drainage" : undefined,
                 },
             }, { onProgress: emitProgress }),
         })

@@ -74,8 +74,14 @@ ai-models.json
 /forge_runtime/layout_outputs/
 /forge_runtime/nexus_visionary_inputs/
 /forge_runtime/test_inputs/
+/forge_runtime/benchmark/
+/forge_runtime/mep_out/
 /private_docs/
 **/__pycache__/
+
+# editor
+/.vscode/
+/.idea/
 
 # temporary docs and generated assets
 *.pptx

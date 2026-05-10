@@ -1,0 +1,42 @@
+{
+    "case_id": "case_02_residential_slab",
+    "description": "Single-storey residential slab: four apartments, each bathroom + kitchen",
+    "building_type": "residential",
+    "plan": {
+        "project_name": "bench_residential_slab",
+        "ceiling_void_mm": 400,
+        "ground_elevation_mm": 0,
+        "roof_elevation_mm": 3600,
+        "storeys": [
+            {
+                "id": "L1",
+                "index": 0,
+                "elevation_mm": 0,
+                "height_mm": 3000,
+                "outline": [[0, 0], [40000, 0], [40000, 14000], [0, 14000]],
+                "shafts": [
+                    {"id": "shaft_L", "polygon": [[9000, 6000], [11000, 6000], [11000, 8000], [9000, 8000]]},
+                    {"id": "shaft_R", "polygon": [[29000, 6000], [31000, 6000], [31000, 8000], [29000, 8000]]}
+                ],
+                "rooms": [
+                    {"id": "apt1_bath", "type": "bathroom",
+                     "polygon": [[1000, 8500], [4000, 8500], [4000, 11500], [1000, 11500]], "door": [2500, 8500]},
+                    {"id": "apt1_kitchen", "type": "kitchen",
+                     "polygon": [[1000, 11500], [5000, 11500], [5000, 14000], [1000, 14000]], "door": [2500, 11500]},
+                    {"id": "apt2_bath", "type": "bathroom",
+                     "polygon": [[11500, 8500], [14500, 8500], [14500, 11500], [11500, 11500]], "door": [13000, 8500]},
+                    {"id": "apt2_kitchen", "type": "kitchen",
+                     "polygon": [[11500, 11500], [15500, 11500], [15500, 14000], [11500, 14000]], "door": [13000, 11500]},
+                    {"id": "apt3_bath", "type": "bathroom",
+                     "polygon": [[21000, 8500], [24000, 8500], [24000, 11500], [21000, 11500]], "door": [22500, 8500]},
+                    {"id": "apt3_kitchen", "type": "kitchen",
+                     "polygon": [[21000, 11500], [25000, 11500], [25000, 14000], [21000, 14000]], "door": [22500, 11500]},
+                    {"id": "apt4_bath", "type": "bathroom",
+                     "polygon": [[31500, 8500], [34500, 8500], [34500, 11500], [31500, 11500]], "door": [33000, 8500]},
+                    {"id": "apt4_kitchen", "type": "kitchen",
+                     "polygon": [[31500, 11500], [35500, 11500], [35500, 14000], [31500, 14000]], "door": [33000, 11500]}
+                ]
+            }
+        ]
+    }
+}

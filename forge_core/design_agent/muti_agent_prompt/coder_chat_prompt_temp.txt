@@ -11,6 +11,7 @@ Production reliability rules:
 - If the tool contract says door/window/style tools are unavailable, skip those calls instead of inventing resource names.
 - Prefer walls, slabs, spaces, roofs, and storeys as the stable BIM baseline.
 - Keep the generated model spatially meaningful: perimeter walls, circulation/core, functional zones, slabs, roof, repeated floors.
+- Functional area rule: whenever the building program includes plumbing-dependent rooms (bathroom, restroom, kitchen, tea room, pantry, locker/shower room), call `create_functional_area(name, ...)` for each one with a descriptive name such as "bathroom", "restroom_male", "restroom_female", "kitchen", "tea_room". Skip this rule when the user explicitly asks for a building that has no such rooms (e.g. a warehouse shell, a single pavilion, a pure structural test).
 Now, based on the conversation given below, please complete your answer as a programmer:
 <<chat_history>>
 Product Owner: <<task>>

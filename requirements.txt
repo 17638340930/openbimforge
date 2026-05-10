@@ -1,12 +1,10 @@
-# openBIMForge Python Dependencies - ULTIMATE VERSION
-transformers>=4.40.0,<5.0.0
-accelerate
-requests
-sentencepiece
-openai
-python-dotenv
-mistralai
-anthropic
-google-genai
-# Utility
-pillow
+# openBIMForge Python Dependencies
+#
+# ⚠️  The authoritative dependency list now lives in pyproject.toml. This
+# file is kept for legacy tooling (pip install -r) only. Prefer uv:
+#
+#     uv sync --extra dev    # installs runtime + pytest
+#     uv run pytest tests    # runs the test suite
+#
+# If you edit this file, mirror the change in pyproject.toml.
+-e .

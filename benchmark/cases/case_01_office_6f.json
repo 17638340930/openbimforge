@@ -1,0 +1,52 @@
+{
+    "case_id": "case_01_office_6f",
+    "description": "Classic six-storey office with male/female public restrooms and a tea room per floor",
+    "building_type": "office",
+    "plan": {
+        "project_name": "bench_office_6f",
+        "ceiling_void_mm": 500,
+        "ground_elevation_mm": 0,
+        "roof_elevation_mm": 21600,
+        "storeys": [
+            {
+                "id": "L1", "index": 0, "elevation_mm": 0, "height_mm": 3600,
+                "outline": [[0, 0], [36000, 0], [36000, 20000], [0, 20000]],
+                "shafts": [{"id": "shaft_center", "polygon": [[17000, 8500], [19000, 8500], [19000, 11500], [17000, 11500]]}],
+                "rooms": [
+                    {"id": "wc_m_L1", "type": "restroom_public_male",
+                     "polygon": [[19000, 6000], [24000, 6000], [24000, 9500], [19000, 9500]], "door": [19200, 9500]},
+                    {"id": "wc_f_L1", "type": "restroom_public_female",
+                     "polygon": [[19000, 9500], [24000, 9500], [24000, 14000], [19000, 14000]], "door": [19200, 9500]},
+                    {"id": "tea_L1", "type": "tea_room",
+                     "polygon": [[12000, 6000], [17000, 6000], [17000, 9500], [12000, 9500]], "door": [16800, 9500]}
+                ]
+            },
+            {
+                "id": "L2", "index": 1, "elevation_mm": 3600, "height_mm": 3600,
+                "outline": [[0, 0], [36000, 0], [36000, 20000], [0, 20000]],
+                "shafts": [{"id": "shaft_center", "polygon": [[17000, 8500], [19000, 8500], [19000, 11500], [17000, 11500]]}],
+                "rooms": [
+                    {"id": "wc_m_L2", "type": "restroom_public_male",
+                     "polygon": [[19000, 6000], [24000, 6000], [24000, 9500], [19000, 9500]], "door": [19200, 9500]},
+                    {"id": "wc_f_L2", "type": "restroom_public_female",
+                     "polygon": [[19000, 9500], [24000, 9500], [24000, 14000], [19000, 14000]], "door": [19200, 9500]},
+                    {"id": "tea_L2", "type": "tea_room",
+                     "polygon": [[12000, 6000], [17000, 6000], [17000, 9500], [12000, 9500]], "door": [16800, 9500]}
+                ]
+            },
+            {
+                "id": "L3", "index": 2, "elevation_mm": 7200, "height_mm": 3600,
+                "outline": [[0, 0], [36000, 0], [36000, 20000], [0, 20000]],
+                "shafts": [{"id": "shaft_center", "polygon": [[17000, 8500], [19000, 8500], [19000, 11500], [17000, 11500]]}],
+                "rooms": [
+                    {"id": "wc_m_L3", "type": "restroom_public_male",
+                     "polygon": [[19000, 6000], [24000, 6000], [24000, 9500], [19000, 9500]], "door": [19200, 9500]},
+                    {"id": "wc_f_L3", "type": "restroom_public_female",
+                     "polygon": [[19000, 9500], [24000, 9500], [24000, 14000], [19000, 14000]], "door": [19200, 9500]},
+                    {"id": "tea_L3", "type": "tea_room",
+                     "polygon": [[12000, 6000], [17000, 6000], [17000, 9500], [12000, 9500]], "door": [16800, 9500]}
+                ]
+            }
+        ]
+    }
+}

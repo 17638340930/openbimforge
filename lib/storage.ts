@@ -30,6 +30,13 @@ export const STORAGE_KEYS = {
 
     // BIM clarification loop
     bimModeEnabled: "openbimforge-bim-mode-enabled",
+    mepModeEnabled: "openbimforge-mep-mode-enabled",
+    // Per-agent model specialisation (optional). Each value is a JSON blob
+    // {provider, modelId, baseUrl, apiKey}. When empty the agent falls back
+    // to the main model.
+    architectAgentOverride: "openbimforge-agent-architect",
+    constructorAgentOverride: "openbimforge-agent-constructor",
+    checkerAgentOverride: "openbimforge-agent-checker",
     clarifyUseSeparateModel: "openbimforge-clarify-use-separate-model",
     clarifyProvider: "openbimforge-clarify-provider",
     clarifyBaseUrl: "openbimforge-clarify-base-url",

@@ -1,0 +1,68 @@
+{
+    "building_type": "default",
+    "label_zh": "通用建筑",
+    "label_en": "Generic Building",
+    "design_parameters": {
+        "floor_depth_m": {
+            "typical": 15,
+            "range": [12, 18]
+        },
+        "floor_height_m": {
+            "typical": 3.6,
+            "range": [3.0, 4.2]
+        },
+        "structural_grid_m": {
+            "typical": 8.0,
+            "options": [7.2, 8.0, 9.0]
+        },
+        "core_area_ratio": {
+            "typical": 0.15,
+            "range": [0.10, 0.20]
+        },
+        "corridor_width_m": {
+            "single_load": 1.5,
+            "double_load": 1.8,
+            "fire_code_min": 1.4
+        },
+        "window_wall_ratio": {
+            "typical": 0.4,
+            "range": [0.3, 0.5]
+        }
+    },
+    "program_zones": [
+        {
+            "name": "primary_program",
+            "label_zh": "主功能区",
+            "ratio": 0.60,
+            "adjacency": ["corridor"]
+        },
+        {
+            "name": "core",
+            "label_zh": "核心筒",
+            "ratio": 0.15,
+            "position": "center"
+        },
+        {
+            "name": "service",
+            "label_zh": "辅助用房",
+            "ratio": 0.10
+        },
+        {
+            "name": "circulation",
+            "label_zh": "走廊",
+            "ratio": 0.15
+        }
+    ],
+    "default_fallbacks": {
+        "floor_height_m": 3.6,
+        "storey_count": 4,
+        "per_floor_area_m2": 600,
+        "floor_depth_m": 15,
+        "structural_grid_m": 8.0
+    },
+    "mass_composition_hint": "Rectangular footprint with a central core, primary program zones wrapping the perimeter, and repeated storeys. Use symmetric composition when user intent is unclear.",
+    "few_shot_example": {
+        "user_input": "\u8bbe\u8ba1\u4e00\u680b 4 \u5c42\u5efa\u7b51",
+        "architect_guidance": "\u5047\u8bbe\u5355\u5c42 600 m\u00b2\uff0830 m \u00d7 20 m \u77e9\u5f62\u8fdb\u6df1\uff09\uff0c\u4e2d\u90e8\u8bbe\u6838\u5fc3\u7b52 90 m\u00b2\uff0c\u5668\u754c\u5e03\u7f6e\u4e3b\u529f\u80fd\u533a\u3002\u5c42\u9ad8 3.6 m\uff0c\u9996\u5c42\u62ac\u9ad8 4.2 m\u3002"
+    }
+}

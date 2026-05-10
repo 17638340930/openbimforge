@@ -1,91 +1,26 @@
 # openBIMForge
 
-**面向建筑信息模型（BIM）的多模态智能生成与 Vectorworks 原生构筑系统**
+> **Generative BIM framework that turns natural-language briefs into native Vectorworks models and IFC drainage assets.**
+>
+> Multi-agent LLM orchestration • Neurosymbolic MEP routing • Typology-aware knowledge injection • Quality-gated regeneration
 
-openBIMForge 是一个将自然语言、语音指令与建筑草图转化为 BIM 构筑任务的生成式 Agent 系统。项目以 **Nexus 多智能体编排框架** 为核心，通过 Architect-Agent、Constructor-Agent 与 Vectorworks VM 执行层协同，把用户的建筑意图转化为可在专业 BIM 软件中运行的原生 Python 构筑脚本，并完成模型生成、IFC 导出与结果回写。
+openBIMForge 把自然语言、体量草图和平面图转化为可在 **Vectorworks** 中执行的 BIM 生成任务，并在同一流水线里协同生成**排污 MEP 系统（IFC4）**。系统以 **Nexus 多智能体编排框架**为核心，打通了从语义需求、典型学知识注入、约束代码合成、质量审查到物理构筑的完整链路。
 
-该版本已打通从 Web 交互、LLM 规划、ForgeVision 图像理解、CAD-First 矢量约束，到 Vectorworks 物理执行的完整链路，可作为 **AI + BIM 自动建模方向的工程原型、毕业论文系统与面试展示项目**。
+---
 
 ## 项目亮点
 
-### 1. Nexus 多智能体 BIM 编排
+| 能力 | 说明 |
+|------|------|
+| **多智能体 BIM 编排** | Architect-Agent（规划）→ Constructor-Agent（代码）→ Checker-Agent（审查）→ Transit-Payload → Vectorworks VM |
+| **可切换 LLM** | 支持 20+ 提供商（OpenAI、Anthropic、DeepSeek、LongCat、Qwen、Ollama、Vertex AI、Bedrock…），每个 Agent 可独立指定模型 |
+| **Typology 知识注入** | 10 种建筑类型（办公 / 住宅 / 学校 / 医院 / 酒店 / 商场 / 工业 / 宿舍 / 别墅 / 默认）的结构化参数库，替代硬编码默认值 |
+| **三维度质量评估** | 需求符合度 + 几何合理性 + BIM 语义丰富度，阈值触发 Checker-Agent 定向重生成 |
+| **MEP 排污专项**（创新点） | Fixture 定位 → Stack 聚类 → A\* 带约束横管路由 → Merge-Tree 合流拓扑 → GB 50015 查表定径 → 通气/清扫口补全 → IFC4 导出 |
+| **跨模态输入** | 文字 / 语音 / 体量图 / 平面图 / CAD 向量，经 ForgeVision 归一化为几何约束 |
+| **透明可审计** | Claude Code 风格折叠执行流，每个阶段产出可溯源的 JSON / 代码 / IFC 工件 |
 
-系统将 BIM 生成拆分为“语义规划”和“物理构筑”两个阶段：
-
-- **Architect-Agent**：理解建筑需求，补全空间逻辑、层数、功能区、体量关系与设计约束。
-- **Constructor-Agent**：将规划结果转化为 Vectorworks Python 构筑代码，生成墙体、楼板、空间、核心筒、屋顶与构件。
-- **Stage4 Vectorworks VM**：在 Vectorworks 宿主环境中真实执行 `vs.*` 调用，避免外部 Python 伪执行。
-
-### 2. Text-to-BIM 全链路
-
-支持通过自然语言描述生成 BIM，例如：
-
-> 生成一栋 6 层办公楼，面积 4200 平方米，层高 3.6 米，以开放办公为主，包含会议室、核心筒和屋顶设备层。
-
-系统会自动完成需求识别、Agent 编排、Payload 交付、Vectorworks 执行与结果同步。
-
-### 3. ForgeVision-Form 图像形体链路
-
-系统支持上传建筑草图、体量图或概念图，通过 ForgeVision-Form 解析视觉形体，生成：
-
-- 预览图（Preview）
-- 三维体量参考（STL）
-- CAD 矢量序列（cad_vector.json）
-
-这些结果会作为 `ForgeVisionConstraints` 自动注入 Nexus，让 LLM 不再只依赖文字描述，而能参考视觉体量进行 BIM 重构。
-
-### 4. CAD-First 高精度矢量构筑
-
-当图像解析得到的 CAD vector 复杂度达到阈值时，系统会自动进入 **CAD-First** 模式：
-
-- 读取 `complexity_score`
-- 提取关键坐标点 `[CAD_COORDINATES]`
-- 强制 Constructor-Agent 使用 polygon / slab / wall 逻辑
-- 减少“白模化”和简单 Box 生成
-- 提升复杂退台、异形轮廓、组合体量的几何贴合度
-
-### 5. Vectorworks 真实物理执行闭环
-
-系统采用 `Transit-Payload` 文件协议连接 Web 与 Vectorworks：
-
-1. Web / Python 编排层生成 `nexus_payload_*.json`
-2. Vectorworks Web Palette 轮询 pending payload
-3. VLB 插件调用 Vectorworks Python VM
-4. `vectorworks_execute.py` 在 VM 内执行构筑代码
-5. 写回 `.result.json`
-6. 前端状态卡片同步完成结果
-
-该机制实现了 Web UI 与专业 BIM 宿主之间的异步解耦。
-
-### 6. 工程级状态对账
-
-为避免 Stage4 异步执行误报失败，系统引入 pending 文件机制：
-
-- `.result.json.pending.json`：表示 payload 已交付，等待 Vectorworks VM 回写
-- `.result.json`：表示 VM 已完成真实执行
-- 前端在等待期间显示“等待 VM 回写”，不会把正常等待误判为失败
-
-## 当前已实现
-
-- 文本输入 → Nexus → Vectorworks BIM 生成
-- 语音转文字 → 文本 BIM 链路
-- 图片上传 → ForgeVision-Form → Nexus
-- CAD vector → CAD-First 高精度分支
-- Transit-Payload 异步交付
-- Vectorworks Web Palette / VLB / VM 执行闭环
-- `.result.json` 结果回写与前端状态同步
-- 前端隐藏技术 JSON，展示 ForgeVision 几何约束卡片
-- PowerShell 开发日志降噪与关键节点输出
-
-## 当前规划
-
-下一阶段重点是 **ForgeVision-Layout**：
-
-- 识别平面图中的房间、走廊、门窗、核心筒和功能分区
-- 输出 `rooms / walls / doors / adjacency / corridor / core` 空间拓扑 JSON
-- 将空间拓扑注入 Nexus，让 Constructor 生成真正的室内布局和房间墙线
-
-当前 ForgeVision-Layout 尚未完整实现，现阶段已完成的是 ForgeVision-Form 与 CAD-First 形体链路。
+---
 
 ## 系统架构
 
@@ -94,81 +29,157 @@ flowchart TD
     A["用户输入：文字 / 语音 / 图片"] --> B["Next.js Chat UI"]
     B --> C{"输入类型"}
     C -->|"文字 / 语音"| D["/api/chat"]
-    C -->|"图片"| E["ForgeVision-Form"]
-    E --> F["STL / Preview / CAD Vector"]
+    C -->|"图片"| E["ForgeVision-Form/Layout"]
+    E --> F["STL / Preview / CAD Vector / Topology"]
     F --> D
-    D --> G["Nexus Architect-Agent"]
-    G --> H["Nexus Constructor-Agent"]
-    H --> I["Transit-Payload JSON"]
-    I --> J["Vectorworks Web Palette / VLB"]
-    J --> K["Vectorworks Python VM"]
-    K --> L["BIM Model / VWX / IFC / result.json"]
+    D --> G0["Stage 0 Clarification Loop（LLM 参数完整度评估）"]
+    G0 --> G["Stage 1 Architect-Agent（Typology 知识注入）"]
+    G --> H["Stage 2 Constructor-Agent（Vectorworks Python 代码合成）"]
+    H --> H2["Stage 2.5 Checker-Agent（三维度质量审查 + 定向重生成）"]
+    H2 --> I["Stage 3 Transit-Payload JSON"]
+    I --> J["Stage 4 Vectorworks VM（物理构筑）"]
+    J --> L["VWX / IFC / result.json"]
+    H2 -.MEP 模式.-> M["MEP-Engineer（排污专项）"]
+    M --> M1["Fixture Placement → Stack Planning → A* Routing + Merge-Tree → Sizing"]
+    M1 --> M2["IFC4 管道导出 / Vectorworks Python 脚本"]
 ```
+
+系统由两条独立但可协同的智能体链路组成：
+
+- **建筑主链路（Nexus）**：Clarification → Architect → Constructor → Checker → Transit → Vectorworks VM。每步都产出可审计的中间产物（槽位、代码、三维度质量评分、IFC）。
+- **MEP 分支**（可选启用）：读取 Architect 产出的建筑 state，独立完成排污系统设计，输出独立 IFC，可脱离 Vectorworks 单独验证（Solibri / ifc.js / BIMvision）。
+
+---
+
+## 技术栈
+
+- **前端**：Next.js 16（App Router）· React 19 · Tailwind CSS v4 · Radix UI · Vercel AI SDK v6
+- **后端编排**：Next.js Route Handlers · Node.js · Python Bridge（通过 child_process 调用）
+- **LLM 提供商**：统一适配 OpenAI / Anthropic / Google / Vertex AI / Bedrock / Azure / DeepSeek / OpenRouter / SiliconFlow / SGLang / Ollama / Gateway / EdgeOne / LongCat / 豆包 / ModelScope / GLM / Qwen / 七牛 / Kimi / MiniMax
+- **Python Agent Runtime**：Python 3.11+ · OpenAI-compatible SDK · Anthropic SDK · Google GenAI SDK
+- **MEP 算法**：A\* 约束路径规划 · Prim 最小生成树（合流拓扑）· 自适应 K-means 立管聚类
+- **BIM 运行时**：Vectorworks 2024+ · Vectorworks Python SDK（`vs.*`）· IFC4（手写 SPF 导出，零依赖）
+- **可观测性**：Langfuse LLM Tracing · OpenTelemetry
+- **包管理**：`uv`（Python）· `npm`（Node）
+- **部署**：Cloudflare Workers（`@opennextjs/cloudflare`）· Vercel · Docker · 腾讯 EdgeOne
+
+---
 
 ## 核心目录
 
 ```text
-app/api/chat/                         # Nexus 编排入口、需求判断、流式响应
-app/api/bim/forge-architect-visionary # ForgeVision-Form 图片解析 API
-app/api/bim/forge-architect-runner    # Vectorworks Web Palette 查询 pending payload
-app/api/bim/forge-architect-result    # 前端轮询 VM result.json
-components/chat-panel.tsx             # 聊天、语音、图片上传、ForgeVision 自动提交
-components/chat-message-display.tsx   # Nexus 状态卡片、ForgeVision 卡片、结果展示
-forge_core/layout_agent/              # ForgeVision-Form Python 适配层
-forge_core/build_agent/               # Nexus 编排、Transit-Payload、VM 执行
-forge_core/design_agent/muti_agent_prompt/ # Architect / Constructor 基础提示词
-vectorworks_plugin/                   # Vectorworks Web Palette 与 VLB 桥接
-forge_runtime/handoffs/               # 本地运行时 payload / pending / result 文件
+app/
+  api/chat/                         # Nexus 编排入口、澄清循环、流式响应
+  api/bim/forge-architect-*         # BIM 生成 API（能力扫描、结果轮询、构件下载）
+  bim/                              # Vectorworks 控制台 / IFC 预览页面
+components/
+  chat-panel.tsx                    # 主聊天面板（文字 / 语音 / 图片 / MEP 开关）
+  chat-message-display.tsx          # Claude Code 风格可折叠执行卡片
+  settings-dialog.tsx               # Agent 模型专业化配置（高级）
+forge_core/
+  knowledge/                        # Typology 知识包 + MEP 器具字典
+    typologies/*.json               # 10 种建筑类型参数库
+    mep_fixtures.json               # GB 50015 器具 / 管径查表
+    loader.py                       # 查表 + fallback 解析器
+  build_agent/                      # Nexus 编排 + Checker + 质量评估 + VM 执行
+    unified_runtime.py              # 主流水线，Agent 模型专业化
+    nexus_checker.py                # 阈值 + 单次重生成
+    quality_evaluator.py            # 三维度静态评分
+  mep_agent/                        # MEP 排污专项（独立可运行）
+    fixture_placer.py               # Stage B 规则式器具定位
+    stack_planner.py                # Stage C 自适应 K-means 立管聚类
+    pipe_router.py                  # Stage D A* + 梁避让
+    merge_tree.py                   # Prim 合流拓扑
+    sizing.py                       # Stage E 管径 / 通气 / 清扫口
+    ifc_exporter.py                 # 无依赖 IFC4 SPF 输出
+    quality.py                      # 连通 / 坡度 / 管径 / 规范四维评估
+    mep_pipeline.py                 # 顶层编排器
+  layout_agent/                     # ForgeVision 图像 / 草图适配层
+  design_agent/                     # Architect / Constructor 提示词 + VS API stub
+benchmark/                          # MEP 定量评测集（3 个 case 起步）
+  cases/                            # BuildingPlan JSON
+  run_benchmark.py                  # CLI：跑所有 case 输出 Markdown / CSV / JSON
+tests/mep/                          # 21 个单元测试（Prim / A* / IFC / 四维评分）
+vectorworks_plugin/                 # Vectorworks Web Palette + VLB 桥接
 ```
 
-## 技术栈
-
-- **Frontend**：Next.js, React, Vercel AI SDK, Tailwind CSS
-- **Backend**：Next.js Route Handlers, Node.js, Python Bridge
-- **Agent Runtime**：Python, OpenAI-compatible SDK, 多模型路由
-- **Vision Pipeline**：ForgeVision-Form, GenCAD-compatible adapter, STL / CAD vector
-- **BIM Runtime**：Vectorworks 2024+, Vectorworks Python SDK
-- **Protocol**：Transit-Payload JSON, `.pending.json`, `.result.json`
+---
 
 ## 快速启动
 
+### 安装依赖
+
 ```bash
+# Node 端
 npm install
+
+# Python 端（推荐 uv）
+uv sync --extra dev
+```
+
+### 启动开发服务器
+
+```bash
 npm run dev
+# 浏览器访问 http://localhost:6002/zh
 ```
 
-图片链路需要配置 ForgeVision-Form 外部引擎：
+### 独立运行 MEP 生成（不依赖 Vectorworks）
 
-```env
-OPENBIMFORGE_LAYOUT_ENGINE_ROOT=...
-OPENBIMFORGE_LAYOUT_ENTRYPOINT=...
-OPENBIMFORGE_LAYOUT_PYTHON=...
+```bash
+uv run -m forge_core.mep_agent \
+    --input forge_core/mep_agent/examples/office_6f_demo.json \
+    --output forge_runtime/mep_out --ifc --script
 ```
 
-Vectorworks 物理执行需要安装并打开 `vectorworks_plugin` 中的 Web Palette / VLB 插件。
+产出 `demo_office_6f.ifc`，可直接拖进 Solibri、BIMvision、[ifc.js](https://ifcjs.github.io/web-ifc-viewer/example/index.html) 预览三维管道。
 
-## 推荐验证流程
+### 跑 benchmark 评测
 
-1. 输入一段纯文字建筑需求，确认 Nexus Stage 1/2/3/4 正常推进。
-2. 上传简单体量图片，确认 ForgeVision-Form 返回 preview / STL / CAD vector。
-3. 上传复杂退台图片，确认触发 CAD-First。
-4. 打开 Vectorworks Web Palette，确认 pending payload 被 VM 拉取执行。
-5. 检查 `forge_runtime/handoffs` 中 pending 文件被真实 `.result.json` 替换。
+```bash
+uv run -m benchmark.run_benchmark --format markdown
+# 结果：forge_runtime/benchmark/summary.md
+```
+
+### 跑单元测试
+
+```bash
+uv run pytest tests -v
+```
+
+---
+
+## Agent 模型专业化（提升生成质量的关键设计）
+
+每个子 Agent 都可以独立指定提供商 / 模型，系统会自动路由：
+
+- **Architect-Agent**（空间规划、建筑学常识）→ 推理型模型（Claude Opus / o3 / DeepSeek R1）
+- **Constructor-Agent**（生成 Vectorworks Python 代码）→ 代码专项模型（Qwen2.5-Coder / Claude Sonnet / DeepSeek Coder）
+- **Checker-Agent**（三维度评分 + 单次重生成）→ 轻量模型（Haiku / 本地 Ollama）
+
+三个 Agent 留空都会回退到主模型，确保单模型用户无感知。这种 **Model Specialization** 策略让"用一个中等模型 + 一个便宜模型"的组合效果接近"全部用最贵的顶级模型"。
+
+---
+
+## 评测数据（节选）
+
+| Case | Fixtures | Stacks | 管段数 | 管长 | 质量 |
+|------|---------:|-------:|-------:|-----:|-----:|
+| 6 层办公楼 | 51 | 1 | 54 | 52.50 m | 100/100 |
+| 单层 4 户住宅板 | 20 | 2 | 28 | 56.29 m | 100/100 |
+| 4 层教学楼 | 55 | 2 | 63 | 84.75 m | 100/100 |
+
+评测维度：`connectivity`（器具连通率）· `slope`（坡度合规）· `sizing`（管径合规）· `code_compliance`（GB 50015 通气 / 清扫口）。
+
+---
 
 ## 详细文档
 
-- [openBIMForge Nexus 全链路说明](docs/openBIMForge%20Nexus%20全链路说明.md)
-- [openBIMForge 文档清理计划](docs/openBIMForge%20文档清理计划.md)
-- [Vectorworks 插件安装说明](docs/VECTORWORKS_PLUGIN_INSTALL.md)
-- [全链路测试说明](docs/FULL_CHAIN_TEST.md)
+- [MEP 排污 Agent（独立模块说明）](forge_core/mep_agent/README.md)
+- [MEP Benchmark 评测集](benchmark/README.md)
 
-## 项目定位
+---
 
-openBIMForge 不是简单的“文本生成脚本”Demo，而是一个围绕 BIM 真实生产环境设计的多阶段 Agent 系统。它的核心价值在于：
+## License
 
-- 将 LLM 生成能力约束到可执行 BIM 工程流程中
-- 将 Web 交互与 Vectorworks 宿主环境解耦
-- 将图片、CAD 矢量和建筑语义统一注入模型生成链路
-- 为 Text-to-BIM、Image-to-BIM、CAD-to-BIM 的融合提供可运行原型
-
-该项目适合用于展示 AI Agent、BIM 自动化、建筑生成设计、多模态交互和工程软件集成能力。
+Apache-2.0
